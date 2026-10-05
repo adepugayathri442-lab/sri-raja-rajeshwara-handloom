@@ -29,6 +29,10 @@ import {
   Clock,
   MessageSquareQuote,
   Eye,
+  FolderTree,
+  Truck,
+  BarChart3,
+  Settings,
 } from 'lucide-react';
 import { Card } from '@/components/common/Card';
 import { Badge } from '@/components/common/Badge';
@@ -467,61 +471,276 @@ export function AdminDashboard() {
         )}
       </div>
 
-      {/* Operations Quick Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Module 1: Customers */}
-        <Link
-          href="/admin/customers"
-          className="group block p-5 bg-surface hover:bg-surface-subtle border border-border rounded-xl shadow-2xs transition-colors"
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-navy/10 text-navy flex items-center justify-center">
-              <Users className="w-4 h-4" />
-            </div>
-            <h3 className="font-serif font-bold text-primary group-hover:text-accent transition-colors">
-              Customer Directory
-            </h3>
+      {/* Wholesale Management Modules Grid */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+          <div>
+            <h2 className="text-base sm:text-lg font-serif font-bold text-primary flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-accent" />
+              <span>Wholesale Management Modules</span>
+            </h2>
+            <p className="text-xs text-muted">
+              Direct access to all 10 core administrative sections of Sri Raja Rajeshwara Handloom.
+            </p>
           </div>
-          <p className="text-xs text-muted">
-            Manage {stats.totalCustomers} registered cloth store buyers, resellers, and wholesale institutions.
-          </p>
-        </Link>
+          <span className="text-[11px] text-muted font-mono self-start sm:self-auto">
+            10 Operations Active
+          </span>
+        </div>
 
-        {/* Module 2: Stock Control */}
-        <Link
-          href="/admin/stock"
-          className="group block p-5 bg-surface hover:bg-surface-subtle border border-border rounded-xl shadow-2xs transition-colors"
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
-              <Boxes className="w-4 h-4" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {/* 1. Products */}
+          <Link
+            href="/admin/products"
+            className="group relative p-4 bg-surface hover:bg-surface-subtle border border-border hover:border-accent/40 rounded-xl shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white flex items-center justify-center transition-colors">
+                  <Package className="w-4 h-4" />
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <h3 className="font-serif font-bold text-sm text-primary group-hover:text-accent transition-colors">
+                Products
+              </h3>
+              <p className="text-xs text-muted mt-1 leading-relaxed">
+                Wholesale catalogue, specifications, piece pricing, and catalogue listings ({stats.totalProducts} items).
+              </p>
             </div>
-            <h3 className="font-serif font-bold text-primary group-hover:text-accent transition-colors">
-              Stock & Inventory
-            </h3>
-          </div>
-          <p className="text-xs text-muted">
-            Monitor piece counts, restock thresholds, and warehouse availability across all textile lines.
-          </p>
-        </Link>
+            <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="text-muted">Manage items</span>
+              <span className="text-accent font-semibold flex items-center gap-0.5">
+                + Add New
+              </span>
+            </div>
+          </Link>
 
-        {/* Module 3: Wholesale Enquiries */}
-        <Link
-          href="/admin/wholesale-enquiries"
-          className="group block p-5 bg-surface hover:bg-surface-subtle border border-border rounded-xl shadow-2xs transition-colors"
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-accent/20 text-charcoal flex items-center justify-center">
-              <MessageSquareQuote className="w-4 h-4" />
+          {/* 2. Categories */}
+          <Link
+            href="/admin/categories"
+            className="group relative p-4 bg-surface hover:bg-surface-subtle border border-border hover:border-accent/40 rounded-xl shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-teal-50 text-teal-800 group-hover:bg-teal-700 group-hover:text-white flex items-center justify-center transition-colors">
+                  <FolderTree className="w-4 h-4" />
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <h3 className="font-serif font-bold text-sm text-primary group-hover:text-accent transition-colors">
+                Categories
+              </h3>
+              <p className="text-xs text-muted mt-1 leading-relaxed">
+                Towels, lungies, bedsheets, dhoties, shawls, and textile grouping classification.
+              </p>
             </div>
-            <h3 className="font-serif font-bold text-primary group-hover:text-accent transition-colors">
-              Wholesale Enquiries
-            </h3>
-          </div>
-          <p className="text-xs text-muted">
-            Review bulk quote inquiries submitted from shops and institutions across India.
-          </p>
-        </Link>
+            <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="text-muted">Sort & hierarchy</span>
+              <span className="text-accent font-semibold">View &rarr;</span>
+            </div>
+          </Link>
+
+          {/* 3. Orders */}
+          <Link
+            href="/admin/orders"
+            className="group relative p-4 bg-surface hover:bg-surface-subtle border border-border hover:border-accent/40 rounded-xl shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-800 group-hover:bg-amber-700 group-hover:text-white flex items-center justify-center transition-colors">
+                  <ShoppingBag className="w-4 h-4" />
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <h3 className="font-serif font-bold text-sm text-primary group-hover:text-accent transition-colors">
+                Orders
+              </h3>
+              <p className="text-xs text-muted mt-1 leading-relaxed">
+                Track wholesale dispatches, order statuses, parcels, invoices, and LR details ({stats.totalOrders} orders).
+              </p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="text-muted">{stats.pendingOrders} pending</span>
+              <span className="text-accent font-semibold">Dispatch &rarr;</span>
+            </div>
+          </Link>
+
+          {/* 4. Customers */}
+          <Link
+            href="/admin/customers"
+            className="group relative p-4 bg-surface hover:bg-surface-subtle border border-border hover:border-accent/40 rounded-xl shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-navy/10 text-navy group-hover:bg-navy group-hover:text-white flex items-center justify-center transition-colors">
+                  <Users className="w-4 h-4" />
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <h3 className="font-serif font-bold text-sm text-primary group-hover:text-accent transition-colors">
+                Customers
+              </h3>
+              <p className="text-xs text-muted mt-1 leading-relaxed">
+                Directory of {stats.totalCustomers} registered cloth store buyers, resellers, and wholesale accounts.
+              </p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="text-muted">Directory & history</span>
+              <span className="text-accent font-semibold">View &rarr;</span>
+            </div>
+          </Link>
+
+          {/* 5. Stock */}
+          <Link
+            href="/admin/stock"
+            className="group relative p-4 bg-surface hover:bg-surface-subtle border border-border hover:border-accent/40 rounded-xl shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-orange-50 text-orange-800 group-hover:bg-orange-700 group-hover:text-white flex items-center justify-center transition-colors">
+                  <Boxes className="w-4 h-4" />
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <h3 className="font-serif font-bold text-sm text-primary group-hover:text-accent transition-colors">
+                Stock
+              </h3>
+              <p className="text-xs text-muted mt-1 leading-relaxed">
+                Warehouse inventory control, piece balances, and restock alerts ({stats.lowStockProducts + stats.outOfStockProducts} low/out).
+              </p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="text-muted">Thresholds & audit</span>
+              <span className="text-accent font-semibold">Inventory &rarr;</span>
+            </div>
+          </Link>
+
+          {/* 6. Wholesale Enquiries */}
+          <Link
+            href="/admin/wholesale-enquiries"
+            className="group relative p-4 bg-surface hover:bg-surface-subtle border border-border hover:border-accent/40 rounded-xl shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-accent/20 text-charcoal group-hover:bg-accent group-hover:text-charcoal flex items-center justify-center transition-colors">
+                  <MessageSquareQuote className="w-4 h-4" />
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <h3 className="font-serif font-bold text-sm text-primary group-hover:text-accent transition-colors">
+                Wholesale Enquiries
+              </h3>
+              <p className="text-xs text-muted mt-1 leading-relaxed">
+                Bulk quote requests, custom specifications, and trade leads from businesses across India.
+              </p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="text-muted">Direct WhatsApp</span>
+              <span className="text-accent font-semibold">Quotes &rarr;</span>
+            </div>
+          </Link>
+
+          {/* 7. Delivery Charges */}
+          <Link
+            href="/admin/delivery-charges"
+            className="group relative p-4 bg-surface hover:bg-surface-subtle border border-border hover:border-accent/40 rounded-xl shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-sky-50 text-sky-800 group-hover:bg-sky-700 group-hover:text-white flex items-center justify-center transition-colors">
+                  <Truck className="w-4 h-4" />
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <h3 className="font-serif font-bold text-sm text-primary group-hover:text-accent transition-colors">
+                Delivery Charges
+              </h3>
+              <p className="text-xs text-muted mt-1 leading-relaxed">
+                Pan-India parcel freight tariffs, base rates, and state-wise wholesale transport calculations.
+              </p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="text-muted">Transport tariffs</span>
+              <span className="text-accent font-semibold">Rules &rarr;</span>
+            </div>
+          </Link>
+
+          {/* 8. Payments */}
+          <Link
+            href="/admin/payments"
+            className="group relative p-4 bg-surface hover:bg-surface-subtle border border-border hover:border-accent/40 rounded-xl shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-800 group-hover:bg-emerald-700 group-hover:text-white flex items-center justify-center transition-colors">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <h3 className="font-serif font-bold text-sm text-primary group-hover:text-accent transition-colors">
+                Payments
+              </h3>
+              <p className="text-xs text-muted mt-1 leading-relaxed">
+                Wholesale billing ledger, NEFT/UPI settlement confirmations, and payment status updates.
+              </p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="text-muted">Ledger verification</span>
+              <span className="text-accent font-semibold">Verify &rarr;</span>
+            </div>
+          </Link>
+
+          {/* 9. Reports */}
+          <Link
+            href="/admin/reports"
+            className="group relative p-4 bg-surface hover:bg-surface-subtle border border-border hover:border-accent/40 rounded-xl shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-800 group-hover:bg-purple-700 group-hover:text-white flex items-center justify-center transition-colors">
+                  <BarChart3 className="w-4 h-4" />
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <h3 className="font-serif font-bold text-sm text-primary group-hover:text-accent transition-colors">
+                Reports
+              </h3>
+              <p className="text-xs text-muted mt-1 leading-relaxed">
+                Sales analytics, wholesale turnover volumes, top-moving fabrics, and CSV/print data exports.
+              </p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="text-muted">Revenue & trends</span>
+              <span className="text-accent font-semibold">Analytics &rarr;</span>
+            </div>
+          </Link>
+
+          {/* 10. Settings */}
+          <Link
+            href="/admin/settings"
+            className="group relative p-4 bg-surface hover:bg-surface-subtle border border-border hover:border-accent/40 rounded-xl shadow-2xs hover:shadow-sm transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-9 h-9 rounded-lg bg-stone-100 text-stone-700 group-hover:bg-stone-700 group-hover:text-white flex items-center justify-center transition-colors">
+                  <Settings className="w-4 h-4" />
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-muted group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
+              </div>
+              <h3 className="font-serif font-bold text-sm text-primary group-hover:text-accent transition-colors">
+                Settings
+              </h3>
+              <p className="text-xs text-muted mt-1 leading-relaxed">
+                Store parameters, GSTIN, business hotlines, operational switches, and trading policies.
+              </p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-border/60 flex items-center justify-between text-[11px]">
+              <span className="text-muted">Merchant config</span>
+              <span className="text-accent font-semibold">Configure &rarr;</span>
+            </div>
+          </Link>
+        </div>
       </div>
     </div>
   );

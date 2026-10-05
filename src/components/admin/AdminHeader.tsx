@@ -10,7 +10,7 @@ export function AdminHeader() {
   const { user, profile, logout, isConfigured } = useAuth();
 
   return (
-    <header className="h-16 bg-surface border-b border-border px-6 flex items-center justify-between shadow-2xs">
+    <header className="hidden lg:flex h-16 bg-surface border-b border-border px-6 items-center justify-between shadow-2xs">
       <div className="flex items-center gap-3">
         <span className="text-xs font-semibold text-primary uppercase tracking-wider">
           Merchant Administration
