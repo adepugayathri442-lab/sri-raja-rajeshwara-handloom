@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+:root {
+  /* ========================================================================
+     SRI RAJA RAJESHWARA HANDLOOM - DESIGN TOKENS
+     Traditional Indian B2B Wholesale Textile Merchant
+     ======================================================================== */
+  
+  /* Primary: Deep Loom Emerald (Refined, traditional, authoritative) */
+  --brand-primary: #0D3B2E;
+  --brand-primary-hover: #07261D;
+  --brand-primary-light: #165643;
+  --brand-primary-subtle: #EBF3F0;
+
+  /* Accent: Muted Antique Gold (Prestige, auspicious, refined elegance) */
+  --brand-accent: #C5A059;
+  --brand-accent-hover: #AE8944;
+  --brand-accent-light: #F7F1E4;
+  --brand-accent-border: #DFD0B2;
+
+  /* Base & Surfaces: Warm Off-White / Cream */
+  --brand-bg: #FAF8F5;
+  --brand-surface: #FFFFFF;
+  --brand-surface-subtle: #F3EEE7;
+  --brand-surface-border: #E8E2D8;
+
+  /* Typography: Dark Charcoal */
+  --brand-charcoal: #1C2421;
+  --brand-muted: #53625D;
+  --brand-border: #E2DBD0;
+
+  /* Deep Navy (Secondary B2B Anchor) */
+  --brand-navy: #0B2545;
+
+  /* Status Tokens */
+  --status-success: #1E6B4B;
+  --status-warning: #B4690E;
+  --status-info: #1D5E8C;
+
+  /* Typography Stacks */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: Georgia, "Times New Roman", Garamond, serif;
+}
+
+@theme inline {
+  --color-primary: var(--brand-primary);
+  --color-primary-hover: var(--brand-primary-hover);
+  --color-primary-light: var(--brand-primary-light);
+  --color-primary-subtle: var(--brand-primary-subtle);
+
+  --color-accent: var(--brand-accent);
+  --color-accent-hover: var(--brand-accent-hover);
+  --color-accent-light: var(--brand-accent-light);
+  --color-accent-border: var(--brand-accent-border);
+
+  --color-cream: var(--brand-bg);
+  --color-surface: var(--brand-surface);
+  --color-surface-subtle: var(--brand-surface-subtle);
+  --color-surface-border: var(--brand-surface-border);
+
+  --color-charcoal: var(--brand-charcoal);
+  --color-muted: var(--brand-muted);
+  --color-border: var(--brand-border);
+  --color-navy: var(--brand-navy);
+
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+}
+
+body {
+  background-color: var(--brand-bg);
+  color: var(--brand-charcoal);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle traditional textile pattern accent */
+.bg-textile-pattern {
+  background-color: var(--brand-bg);
+  background-image: radial-gradient(var(--brand-accent-border) 0.75px, transparent 0.75px);
+  background-size: 24px 24px;
+}
+
+/* Gold flourish divider */
+.gold-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.gold-divider::before,
+.gold-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(to right, transparent, var(--brand-accent), transparent);
+}
+
+/* Card hover elevation */
+.card-hover-subtle {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.card-hover-subtle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(13, 59, 46, 0.08), 0 8px 10px -6px rgba(13, 59, 46, 0.04);
+}

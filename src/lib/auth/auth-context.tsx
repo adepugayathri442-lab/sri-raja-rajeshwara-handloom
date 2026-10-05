@@ -1,0 +1,293 @@
+'use client';
+
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
+import type { User } from '@supabase/supabase-js';
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import type { CustomerType, UserRole } from '@/types/database.types';
+
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  customerType: CustomerType;
+  businessName: string | null;
+  gstNumber: string | null;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface RegisterData {
+  fullName: string;
+  phone: string;
+  email: string;
+  password: string;
+  businessName?: string;
+  customerType: CustomerType;
+}
+
+interface AuthContextValue {
+  user: User | null;
+  profile: UserProfile | null;
+  role: UserRole | null;
+  isAdmin: boolean;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  isConfigured: boolean;
+  login: (email: string, password: string) => Promise<{ error?: string; role?: UserRole }>;
+  register: (data: RegisterData) => Promise<{ error?: string }>;
+  signInWithGoogle: (redirectTo?: string) => Promise<{ error?: string }>;
+  logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const isConfigured = isSupabaseConfigured();
+  const [isLoading, setIsLoading] = useState<boolean>(() => isConfigured);
+
+  const supabase = useMemo(() => {
+    return isConfigured ? createClient() : null;
+  }, [isConfigured]);
+
+  const fetchProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
+    if (!supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      return {
+        id: data.id,
+        fullName: data.full_name,
+        phone: data.phone,
+        email: data.email,
+        customerType: data.customer_type as CustomerType,
+        businessName: data.business_name,
+        gstNumber: data.gst_number,
+        role: (data.role as UserRole) || 'customer',
+        createdAt: data.created_at,
+      };
+    } catch {
+      return null;
+    }
+  }, [supabase]);
+
+  const refreshProfile = useCallback(async () => {
+    if (!user) {
+      setProfile(null);
+      return;
+    }
+    const p = await fetchProfile(user.id);
+    setProfile(p);
+  }, [user, fetchProfile]);
+
+  useEffect(() => {
+    if (!supabase) {
+      return;
+    }
+
+    let isMounted = true;
+
+    // Get current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        fetchProfile(currentUser.id).then((p) => {
+          if (isMounted) setProfile(p);
+          if (isMounted) setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    // Listen to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return;
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        const p = await fetchProfile(currentUser.id);
+        if (isMounted) setProfile(p);
+      } else {
+        setProfile(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase, fetchProfile]);
+
+  const login = async (email: string, password: string): Promise<{ error?: string; role?: UserRole }> => {
+    if (!supabase) {
+      return { error: 'Supabase credentials are not yet configured in environment variables (.env.local).' };
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      if (data.user) {
+        setUser(data.user);
+        const p = await fetchProfile(data.user.id);
+        setProfile(p);
+        return { role: p?.role };
+      }
+
+      return {};
+    } catch (err: unknown) {
+      return { error: err instanceof Error ? err.message : 'Login failed. Please try again.' };
+    }
+  };
+
+  const register = async (data: RegisterData): Promise<{ error?: string }> => {
+    if (!supabase) {
+      return { error: 'Supabase credentials are not yet configured in environment variables (.env.local).' };
+    }
+
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email.trim().toLowerCase(),
+        password: data.password,
+        options: {
+          data: {
+            full_name: data.fullName.trim(),
+            phone: data.phone.trim(),
+            business_name: data.businessName?.trim() || null,
+            customer_type: data.customerType,
+          },
+        },
+      });
+
+      if (authError) {
+        return { error: authError.message };
+      }
+
+      if (!authData.user) {
+        return { error: 'Registration failed to create user. Please try again.' };
+      }
+
+      // Upsert into public.profiles
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: authData.user.id,
+        full_name: data.fullName.trim(),
+        phone: data.phone.trim(),
+        email: data.email.trim().toLowerCase(),
+        customer_type: data.customerType,
+        business_name: data.businessName?.trim() || null,
+        role: 'customer',
+      });
+
+      if (profileError) {
+        // If trigger already handled this, ignore duplicate key error
+        if (!profileError.message.includes('duplicate')) {
+          console.warn('Profile creation warning:', profileError.message);
+        }
+      }
+
+      setUser(authData.user);
+      const p = await fetchProfile(authData.user.id);
+      setProfile(p);
+
+      return {};
+    } catch (err: unknown) {
+      return { error: err instanceof Error ? err.message : 'Registration failed. Please try again.' };
+    }
+  };
+
+  const signInWithGoogle = async (redirectTo?: string): Promise<{ error?: string }> => {
+    if (!supabase) {
+      return { error: 'Supabase credentials are not yet configured in environment variables (.env.local).' };
+    }
+
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')
+        ? redirectTo
+        : '/account';
+
+      const callbackUrl = `${origin}/auth/callback?next=${encodeURIComponent(safeRedirect)}`;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: callbackUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
+        },
+      });
+
+      if (error) {
+        return { error: error.message };
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+
+      return {};
+    } catch (err: unknown) {
+      return { error: err instanceof Error ? err.message : 'Google sign in failed. Please try again.' };
+    }
+  };
+
+  const logout = async (): Promise<void> => {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+    setUser(null);
+    setProfile(null);
+  };
+
+  const role = profile?.role ?? null;
+  const isAdmin = role === 'admin';
+  const isAuthenticated = Boolean(user);
+
+  const value: AuthContextValue = {
+    user,
+    profile,
+    role,
+    isAdmin,
+    isAuthenticated,
+    isLoading,
+    isConfigured,
+    login,
+    register,
+    signInWithGoogle,
+    logout,
+    refreshProfile,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

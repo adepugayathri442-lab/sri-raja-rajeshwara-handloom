@@ -1,0 +1,521 @@
+{
+  "name": "Sri Raja Rajeshwara Handloom - WhatsApp Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sr-handloom-whatsapp",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-webhook-trigger",
+      "name": "Website Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "webhookId": "sr-handloom-whatsapp"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "meta_token",
+              "name": "META_WHATSAPP_ACCESS_TOKEN",
+              "value": "YOUR_META_WHATSAPP_ACCESS_TOKEN_HERE",
+              "type": "string"
+            },
+            {
+              "id": "meta_phone_id",
+              "name": "META_WHATSAPP_PHONE_NUMBER_ID",
+              "value": "YOUR_META_WHATSAPP_PHONE_NUMBER_ID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "meta_waba_id",
+              "name": "META_WHATSAPP_BUSINESS_ACCOUNT_ID",
+              "value": "YOUR_META_WHATSAPP_BUSINESS_ACCOUNT_ID_HERE",
+              "type": "string"
+            },
+            {
+              "id": "admin_phone",
+              "name": "ADMIN_WHATSAPP_NUMBER",
+              "value": "919440472939",
+              "type": "string"
+            },
+            {
+              "id": "webhook_secret",
+              "name": "WEBHOOK_SECRET",
+              "value": "YOUR_WEBHOOK_SECRET_HERE",
+              "type": "string"
+            },
+            {
+              "id": "req_hmac",
+              "name": "REQUIRE_HMAC_SIGNATURE",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "tpl_placed",
+              "name": "TEMPLATE_ORDER_PLACED",
+              "value": "order_placed_wholesale",
+              "type": "string"
+            },
+            {
+              "id": "tpl_confirmed",
+              "name": "TEMPLATE_ORDER_CONFIRMED",
+              "value": "order_confirmed_wholesale",
+              "type": "string"
+            },
+            {
+              "id": "tpl_processing",
+              "name": "TEMPLATE_ORDER_PROCESSING",
+              "value": "order_processing_wholesale",
+              "type": "string"
+            },
+            {
+              "id": "tpl_packed",
+              "name": "TEMPLATE_ORDER_PACKED",
+              "value": "order_packed_wholesale",
+              "type": "string"
+            },
+            {
+              "id": "tpl_shipped",
+              "name": "TEMPLATE_ORDER_SHIPPED",
+              "value": "order_shipped_consignment",
+              "type": "string"
+            },
+            {
+              "id": "tpl_delivered",
+              "name": "TEMPLATE_ORDER_DELIVERED",
+              "value": "order_delivered_wholesale",
+              "type": "string"
+            },
+            {
+              "id": "tpl_cancelled",
+              "name": "TEMPLATE_ORDER_CANCELLED",
+              "value": "order_cancelled_wholesale",
+              "type": "string"
+            },
+            {
+              "id": "tpl_enquiry",
+              "name": "TEMPLATE_WHOLESALE_ENQUIRY",
+              "value": "wholesale_enquiry_admin_alert",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-config-vars",
+      "name": "Config & Credentials",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [320, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract incoming webhook payload and headers\nconst webhookData = $('Website Webhook').first().json;\nconst config = $('Config & Credentials').first().json;\n\nconst headers = webhookData.headers || {};\nconst body = webhookData.body || webhookData;\n\n// 1. Validate Event Type\nconst supportedEvents = [\n  'ORDER_PLACED',\n  'ORDER_CONFIRMED',\n  'ORDER_PROCESSING',\n  'ORDER_PACKED',\n  'ORDER_SHIPPED',\n  'ORDER_DELIVERED',\n  'ORDER_CANCELLED',\n  'WHOLESALE_ENQUIRY_CREATED'\n];\n\nconst eventType = body.event_type || headers['x-webhook-event'];\nconst isValidEvent = supportedEvents.includes(eventType);\n\n// 2. HMAC-SHA256 Signature Verification (if enabled/configured)\nlet isAuthorized = true;\nlet authMessage = 'Signature verification passed or bypassed';\n\nconst signatureHeader = headers['x-webhook-signature-256'] || headers['X-Webhook-Signature-256'];\nconst secret = config.WEBHOOK_SECRET;\nconst requireHmac = config.REQUIRE_HMAC_SIGNATURE === true || (secret && secret !== 'YOUR_WEBHOOK_SECRET_HERE');\n\nif (requireHmac) {\n  if (!signatureHeader) {\n    isAuthorized = false;\n    authMessage = 'Missing X-Webhook-Signature-256 header';\n  } else {\n    try {\n      const crypto = require('crypto');\n      const rawPayload = typeof body === 'string' ? body : JSON.stringify(body);\n      const expectedSignature = 'sha256=' + crypto.createHmac('sha256', secret).update(rawPayload).digest('hex');\n      \n      if (signatureHeader !== expectedSignature) {\n        isAuthorized = false;\n        authMessage = 'Signature mismatch';\n      }\n    } catch (err) {\n      isAuthorized = false;\n      authMessage = 'Crypto verification error: ' + err.message;\n    }\n  }\n}\n\n// 3. Phone Number Normalization Helper\nfunction normalizePhone(raw) {\n  if (!raw) return '';\n  let cleaned = String(raw).replace(/\\D/g, '');\n  if (cleaned.length === 10) {\n    cleaned = '91' + cleaned; // Standard Indian 10-digit mobile\n  }\n  return cleaned;\n}\n\n// 4. Idempotency & Deduplication Control\n// Uses n8n workflow static data to store processed keys for 24 hours\nconst staticData = $getWorkflowStaticData('global');\nstaticData.processedEvents = staticData.processedEvents || {};\n\nconst now = Date.now();\nconst RETENTION_MS = 24 * 60 * 60 * 1000;\n\n// Cleanup expired keys\nfor (const [key, timestamp] of Object.entries(staticData.processedEvents)) {\n  if (now - timestamp > RETENTION_MS) {\n    delete staticData.processedEvents[key];\n  }\n}\n\nconst uniqueEntityId = body.order_id || body.enquiry_id || 'unknown';\nconst deduplicationKey = body.idempotency_key || `${uniqueEntityId}:${eventType}`;\n\nlet isDuplicate = false;\nif (deduplicationKey && staticData.processedEvents[deduplicationKey]) {\n  isDuplicate = true;\n} else if (isAuthorized && isValidEvent && deduplicationKey) {\n  staticData.processedEvents[deduplicationKey] = now;\n}\n\n// 5. Build Normalized Payload\nreturn [{\n  json: {\n    is_authorized: isAuthorized,\n    is_duplicate: isDuplicate,\n    is_valid_event: isValidEvent,\n    auth_message: authMessage,\n    deduplication_key: deduplicationKey,\n    event_type: eventType,\n    \n    // Customer / Recipient Data\n    customer_name: body.customer_name || 'Valued Merchant',\n    customer_phone: normalizePhone(body.customer_phone),\n    business_name: body.business_name || null,\n    customer_type: body.customer_type || 'Retail Merchant',\n    \n    // Order Specific Fields\n    order_id: body.order_id || null,\n    order_number: body.order_number || body.order_id || 'N/A',\n    order_status: body.order_status || 'Pending',\n    total_pieces: Number(body.total_pieces || 0),\n    subtotal: Number(body.subtotal || 0),\n    delivery_charge: Number(body.delivery_charge || 0),\n    total_amount: Number(body.total_amount || 0),\n    payment_status: body.payment_status || 'Pending',\n    tracking_number: body.tracking_number || null,\n    lr_number: body.lr_number || null,\n    transporter_name: body.transporter_name || null,\n    shipped_at: body.shipped_at || null,\n    delivered_at: body.delivered_at || null,\n    \n    // Wholesale Enquiry Specific Fields\n    enquiry_id: body.enquiry_id || null,\n    enquiry_message: body.enquiry_message || '',\n    \n    // System Meta & Config Passthrough\n    admin_whatsapp_number: normalizePhone(config.ADMIN_WHATSAPP_NUMBER || '919440472939'),\n    meta_access_token: config.META_WHATSAPP_ACCESS_TOKEN,\n    meta_phone_number_id: config.META_WHATSAPP_PHONE_NUMBER_ID,\n    meta_waba_id: config.META_WHATSAPP_BUSINESS_ACCOUNT_ID,\n    \n    // Template Names Mapping\n    template_order_placed: config.TEMPLATE_ORDER_PLACED,\n    template_order_confirmed: config.TEMPLATE_ORDER_CONFIRMED,\n    template_order_processing: config.TEMPLATE_ORDER_PROCESSING,\n    template_order_packed: config.TEMPLATE_ORDER_PACKED,\n    template_order_shipped: config.TEMPLATE_ORDER_SHIPPED,\n    template_order_delivered: config.TEMPLATE_ORDER_DELIVERED,\n    template_order_cancelled: config.TEMPLATE_ORDER_CANCELLED,\n    template_wholesale_enquiry: config.TEMPLATE_WHOLESALE_ENQUIRY,\n    \n    timestamp: body.created_at || new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-verify-normalize",
+      "name": "Verify & Normalize Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.is_authorized }}",
+              "value2": true
+            },
+            {
+              "value1": "={{ $json.is_duplicate }}",
+              "value2": false
+            },
+            {
+              "value1": "={{ $json.is_valid_event }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-is-authorized",
+      "name": "Is Authorized & Unique?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nreturn [{\n  json: {\n    status: 'DROPPED',\n    reason:\n      !item.is_authorized ? `Authorization Failed: ${item.auth_message}` :\n      item.is_duplicate ? `Duplicate Event Suppressed: ${item.deduplication_key}` :\n      !item.is_valid_event ? `Unsupported Event Type: ${item.event_type}` :\n      'Unknown',\n    event_type: item.event_type,\n    deduplication_key: item.deduplication_key,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-dropped-audit",
+      "name": "Audit Rejection or Duplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 500]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.event_type }}",
+        "rules": {
+          "rules": [
+            { "value2": "ORDER_PLACED", "output": 0 },
+            { "value2": "ORDER_CONFIRMED", "output": 1 },
+            { "value2": "ORDER_PROCESSING", "output": 2 },
+            { "value2": "ORDER_PACKED", "output": 3 },
+            { "value2": "ORDER_SHIPPED", "output": 4 },
+            { "value2": "ORDER_DELIVERED", "output": 5 },
+            { "value2": "ORDER_CANCELLED", "output": 6 },
+            { "value2": "WHOLESALE_ENQUIRY_CREATED", "output": 7 }
+          ]
+        },
+        "fallbackOutput": 8
+      },
+      "id": "node-event-router",
+      "name": "Route by event_type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [980, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\nconst metaPayload = {\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: d.customer_phone,\n  type: 'template',\n  template: {\n    name: d.template_order_placed,\n    language: { code: 'en' },\n    components: [\n      {\n        type: 'body',\n        parameters: [\n          { type: 'text', text: d.customer_name },\n          { type: 'text', text: d.order_number },\n          { type: 'text', text: `${d.total_pieces} pcs` },\n          { type: 'text', text: `₹${d.total_amount.toLocaleString('en-IN')}` },\n          { type: 'text', text: d.payment_status }\n        ]\n      }\n    ]\n  }\n};\n\nreturn [{\n  json: {\n    ...d,\n    recipient_phone: d.customer_phone,\n    template_name: d.template_order_placed,\n    meta_payload: metaPayload\n  }\n}];"
+      },
+      "id": "node-prep-order-placed",
+      "name": "Prepare ORDER_PLACED",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, -160]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\nconst metaPayload = {\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: d.customer_phone,\n  type: 'template',\n  template: {\n    name: d.template_order_confirmed,\n    language: { code: 'en' },\n    components: [\n      {\n        type: 'body',\n        parameters: [\n          { type: 'text', text: d.customer_name },\n          { type: 'text', text: d.order_number },\n          { type: 'text', text: `${d.total_pieces} pcs` },\n          { type: 'text', text: `₹${d.total_amount.toLocaleString('en-IN')}` }\n        ]\n      }\n    ]\n  }\n};\n\nreturn [{\n  json: {\n    ...d,\n    recipient_phone: d.customer_phone,\n    template_name: d.template_order_confirmed,\n    meta_payload: metaPayload\n  }\n}];"
+      },
+      "id": "node-prep-order-confirmed",
+      "name": "Prepare ORDER_CONFIRMED",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, -60]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\nconst metaPayload = {\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: d.customer_phone,\n  type: 'template',\n  template: {\n    name: d.template_order_processing,\n    language: { code: 'en' },\n    components: [\n      {\n        type: 'body',\n        parameters: [\n          { type: 'text', text: d.customer_name },\n          { type: 'text', text: d.order_number },\n          { type: 'text', text: `${d.total_pieces} pcs` }\n        ]\n      }\n    ]\n  }\n};\n\nreturn [{\n  json: {\n    ...d,\n    recipient_phone: d.customer_phone,\n    template_name: d.template_order_processing,\n    meta_payload: metaPayload\n  }\n}];"
+      },
+      "id": "node-prep-order-processing",
+      "name": "Prepare ORDER_PROCESSING",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 40]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\nconst metaPayload = {\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: d.customer_phone,\n  type: 'template',\n  template: {\n    name: d.template_order_packed,\n    language: { code: 'en' },\n    components: [\n      {\n        type: 'body',\n        parameters: [\n          { type: 'text', text: d.customer_name },\n          { type: 'text', text: d.order_number },\n          { type: 'text', text: `${d.total_pieces} pcs` }\n        ]\n      }\n    ]\n  }\n};\n\nreturn [{\n  json: {\n    ...d,\n    recipient_phone: d.customer_phone,\n    template_name: d.template_order_packed,\n    meta_payload: metaPayload\n  }\n}];"
+      },
+      "id": "node-prep-order-packed",
+      "name": "Prepare ORDER_PACKED",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 140]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\nconst transporter = d.transporter_name || 'Standard Transport';\nconst lrNum = d.lr_number || 'N/A';\nconst tracking = d.tracking_number || lrNum;\nconst shipDate = d.shipped_at ? new Date(d.shipped_at).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN');\n\nconst metaPayload = {\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: d.customer_phone,\n  type: 'template',\n  template: {\n    name: d.template_order_shipped,\n    language: { code: 'en' },\n    components: [\n      {\n        type: 'body',\n        parameters: [\n          { type: 'text', text: d.customer_name },\n          { type: 'text', text: d.order_number },\n          { type: 'text', text: transporter },\n          { type: 'text', text: lrNum },\n          { type: 'text', text: tracking },\n          { type: 'text', text: shipDate }\n        ]\n      }\n    ]\n  }\n};\n\nreturn [{\n  json: {\n    ...d,\n    recipient_phone: d.customer_phone,\n    template_name: d.template_order_shipped,\n    meta_payload: metaPayload\n  }\n}];"
+      },
+      "id": "node-prep-order-shipped",
+      "name": "Prepare ORDER_SHIPPED",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\nconst deliveryDate = d.delivered_at ? new Date(d.delivered_at).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN');\n\nconst metaPayload = {\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: d.customer_phone,\n  type: 'template',\n  template: {\n    name: d.template_order_delivered,\n    language: { code: 'en' },\n    components: [\n      {\n        type: 'body',\n        parameters: [\n          { type: 'text', text: d.customer_name },\n          { type: 'text', text: d.order_number },\n          { type: 'text', text: deliveryDate }\n        ]\n      }\n    ]\n  }\n};\n\nreturn [{\n  json: {\n    ...d,\n    recipient_phone: d.customer_phone,\n    template_name: d.template_order_delivered,\n    meta_payload: metaPayload\n  }\n}];"
+      },
+      "id": "node-prep-order-delivered",
+      "name": "Prepare ORDER_DELIVERED",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\nconst metaPayload = {\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: d.customer_phone,\n  type: 'template',\n  template: {\n    name: d.template_order_cancelled,\n    language: { code: 'en' },\n    components: [\n      {\n        type: 'body',\n        parameters: [\n          { type: 'text', text: d.customer_name },\n          { type: 'text', text: d.order_number }\n        ]\n      }\n    ]\n  }\n};\n\nreturn [{\n  json: {\n    ...d,\n    recipient_phone: d.customer_phone,\n    template_name: d.template_order_cancelled,\n    meta_payload: metaPayload\n  }\n}];"
+      },
+      "id": "node-prep-order-cancelled",
+      "name": "Prepare ORDER_CANCELLED",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 440]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\n\n// Send alert to admin WhatsApp number instead of customer\nconst recipientPhone = d.admin_whatsapp_number;\nconst businessName = d.business_name || 'Not Specified';\n\nconst metaPayload = {\n  messaging_product: 'whatsapp',\n  recipient_type: 'individual',\n  to: recipientPhone,\n  type: 'template',\n  template: {\n    name: d.template_wholesale_enquiry,\n    language: { code: 'en' },\n    components: [\n      {\n        type: 'body',\n        parameters: [\n          { type: 'text', text: d.customer_name },\n          { type: 'text', text: businessName },\n          { type: 'text', text: d.customer_phone },\n          { type: 'text', text: d.customer_type },\n          { type: 'text', text: d.enquiry_message.slice(0, 500) }\n        ]\n      }\n    ]\n  }\n};\n\nreturn [{\n  json: {\n    ...d,\n    recipient_phone: recipientPhone,\n    template_name: d.template_wholesale_enquiry,\n    meta_payload: metaPayload\n  }\n}];"
+      },
+      "id": "node-prep-enquiry-alert",
+      "name": "Prepare WHOLESALE_ENQUIRY",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1260, 540]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v20.0/' + $json.meta_phone_number_id + '/messages' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.meta_access_token }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.meta_payload) }}",
+        "options": {}
+      },
+      "id": "node-send-meta-whatsapp",
+      "name": "Send Meta WhatsApp Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 200],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\n// Look back to previous node payload\nlet sourceData = {};\ntry {\n  sourceData = $('Send Meta WhatsApp Message').first().json || {};\n} catch (e) {}\n\nconst isError = Boolean(\n  response.error ||\n  response.error_data ||\n  (response.statusCode && response.statusCode >= 400)\n);\n\nif (isError) {\n  const errObj = response.error || response;\n  return [{\n    json: {\n      status: 'FAILED',\n      event_type: sourceData.event_type || 'UNKNOWN',\n      order_id: sourceData.order_id || null,\n      enquiry_id: sourceData.enquiry_id || null,\n      recipient: sourceData.recipient_phone || 'UNKNOWN',\n      template_name: sourceData.template_name || 'UNKNOWN',\n      meta_error_message: errObj.message || 'WhatsApp Cloud API call returned an error',\n      meta_error_code: errObj.code || null,\n      error_details: errObj,\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    status: 'SUCCESS',\n    event_type: sourceData.event_type || 'UNKNOWN',\n    order_id: sourceData.order_id || null,\n    enquiry_id: sourceData.enquiry_id || null,\n    recipient: sourceData.recipient_phone || 'UNKNOWN',\n    template_name: sourceData.template_name || 'UNKNOWN',\n    whatsapp_message_id: response.messages?.[0]?.id || 'unknown',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "node-audit-meta-result",
+      "name": "Evaluate Meta API Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1800, 200]
+    }
+  ],
+  "connections": {
+    "Website Webhook": {
+      "main": [
+        [
+          {
+            "node": "Config & Credentials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config & Credentials": {
+      "main": [
+        [
+          {
+            "node": "Verify & Normalize Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify & Normalize Payload": {
+      "main": [
+        [
+          {
+            "node": "Is Authorized & Unique?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Authorized & Unique?": {
+      "main": [
+        [
+          {
+            "node": "Route by event_type",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Audit Rejection or Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by event_type": {
+      "main": [
+        [
+          {
+            "node": "Prepare ORDER_PLACED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare ORDER_CONFIRMED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare ORDER_PROCESSING",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare ORDER_PACKED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare ORDER_SHIPPED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare ORDER_DELIVERED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare ORDER_CANCELLED",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare WHOLESALE_ENQUIRY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare ORDER_PLACED": {
+      "main": [
+        [
+          {
+            "node": "Send Meta WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare ORDER_CONFIRMED": {
+      "main": [
+        [
+          {
+            "node": "Send Meta WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare ORDER_PROCESSING": {
+      "main": [
+        [
+          {
+            "node": "Send Meta WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare ORDER_PACKED": {
+      "main": [
+        [
+          {
+            "node": "Send Meta WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare ORDER_SHIPPED": {
+      "main": [
+        [
+          {
+            "node": "Send Meta WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare ORDER_DELIVERED": {
+      "main": [
+        [
+          {
+            "node": "Send Meta WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare ORDER_CANCELLED": {
+      "main": [
+        [
+          {
+            "node": "Send Meta WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare WHOLESALE_ENQUIRY": {
+      "main": [
+        [
+          {
+            "node": "Send Meta WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Meta WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Meta API Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
