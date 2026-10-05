@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sri Raja Rajeshwara Handloom — Wholesale Cloth Merchant
+
+Live Production URL: [https://sri-raja-rajeshwara-handloom-8gqw.vercel.app](https://sri-raja-rajeshwara-handloom-8gqw.vercel.app)
 
 ## Getting Started
 

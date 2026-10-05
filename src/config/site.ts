@@ -17,7 +17,7 @@ export const siteConfig = {
   businessType: businessConfig.businessType,
   tagline: businessConfig.tagline,
   description: businessConfig.shortDescription,
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://srirajarajeshwara-handloom.com",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://sri-raja-rajeshwara-handloom-8gqw.vercel.app",
   ogImage: "/images/og-wholesale.jpg",
 
   mainNav: [

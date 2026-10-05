@@ -222,7 +222,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const origin =
+        (typeof window !== 'undefined' && window.location.origin)
+          ? window.location.origin
+          : (process.env.NEXT_PUBLIC_SITE_URL || 'https://sri-raja-rajeshwara-handloom-8gqw.vercel.app');
       const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')
         ? redirectTo
         : '/account';
