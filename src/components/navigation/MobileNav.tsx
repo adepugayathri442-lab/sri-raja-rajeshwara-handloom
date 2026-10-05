@@ -19,7 +19,7 @@ export function MobileNav() {
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, isAdmin, profile } = useAuth();
+  const { isAuthenticated, profile } = useAuth();
   const { totalPieces } = useCart();
 
   // Prevent body scroll when drawer is open
@@ -221,20 +221,18 @@ export function MobileNav() {
               <span>Wholesale Bulk Enquiry</span>
             </Link>
 
-            {/* Owner Admin Panel entry - visible ONLY to authenticated admin accounts */}
-            {isAdmin && (
-              <Link
-                href="/admin"
-                onClick={closeDrawer}
-                className="flex items-center justify-between px-3 py-2.5 text-xs sm:text-sm font-semibold text-charcoal bg-accent/20 border border-accent/40 rounded-md hover:bg-accent/30 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-primary" />
-                  <span>Admin Dashboard</span>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5 text-primary" />
-              </Link>
-            )}
+            {/* Owner Admin Panel entry */}
+            <Link
+              href="/admin"
+              onClick={closeDrawer}
+              className="flex items-center justify-between px-3 py-2.5 text-xs sm:text-sm font-semibold text-charcoal bg-accent/20 border border-accent/40 rounded-md hover:bg-accent/30 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-primary" />
+                <span>Admin Dashboard</span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-primary" />
+            </Link>
           </div>
         </div>
 
