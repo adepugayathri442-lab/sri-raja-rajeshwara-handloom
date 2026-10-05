@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { Building2, ShoppingBag, FileText, Truck, ShieldCheck, Database, LogOut } from 'lucide-react';
+import { Building2, ShoppingBag, FileText, Truck, Database, LogOut } from 'lucide-react';
 import { Container } from '@/components/common/Container';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
@@ -43,11 +42,6 @@ export function AccountPlaceholder() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {isAdmin && (
-                <Button href="/admin" variant="accent" size="sm" leftIcon={<ShieldCheck className="w-4 h-4" />}>
-                  Admin Portal
-                </Button>
-              )}
               <Button href="/orders" variant="outline" size="sm" leftIcon={<ShoppingBag className="w-4 h-4" />}>
                 My Orders
               </Button>
@@ -61,41 +55,6 @@ export function AccountPlaceholder() {
               </Button>
             </div>
           </div>
-          {/* Owner / Administrator Control Center Banner (Admin Only) */}
-          {isAdmin && (
-            <div className="mb-8 p-6 bg-primary text-white rounded-xl border-2 border-accent shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3.5">
-                <div className="w-12 h-12 rounded-lg bg-accent/20 text-accent flex items-center justify-center shrink-0 border border-accent/40">
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-accent bg-accent/15 px-2 py-0.5 rounded">
-                      Administrator Access Active
-                    </span>
-                  </div>
-                  <h2 className="text-lg sm:text-xl font-serif font-bold text-white">
-                    Owner Administration & Control Center
-                  </h2>
-                  <p className="text-xs text-white/80 max-w-xl mt-1 leading-relaxed">
-                    You have verified administrator privileges for Sri Raja Rajeshwara Handloom. Manage wholesale catalogue, stock levels, parcel dispatches, and merchant customer accounts.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex sm:flex-col gap-2 shrink-0">
-                <Button href="/admin" variant="accent" size="md" leftIcon={<ShieldCheck className="w-4 h-4" />}>
-                  Open Admin Dashboard
-                </Button>
-                <Link
-                  href="/admin/orders"
-                  className="text-center text-xs text-accent hover:text-white underline underline-offset-2 font-medium"
-                >
-                  Manage Wholesale Orders →
-                </Link>
-              </div>
-            </div>
-          )}
 
           {/* Business & Session Summary */}
           <div className="mb-8 p-5 bg-surface rounded-xl border border-accent/25 shadow-xs">

@@ -6,57 +6,44 @@
  * 
  * Access Control Rules:
  * - Admin access strictly depends on: `profiles.role = 'admin'`
- * - If user is not authenticated: redirect to `/login?redirect=/admin`
- * - If user is a normal customer (`role = 'customer'`): BLOCK access and redirect to `/account`
+ * - If user is not authenticated: render dedicated AdminLoginForm directly
+ * - If user is a normal customer (`role = 'customer'`): BLOCK access with clear denial & link to customer storefront
  * - If user is verified admin (`role = 'admin'`): grant access and render admin children
  */
 
-import React, { useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import React from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
-import { ShieldAlert, Lock, ArrowLeft, LogIn, Loader2 } from 'lucide-react';
+import { ShieldAlert, Lock, ArrowLeft, Loader2, LogOut } from 'lucide-react';
 import { Button } from '@/components/common/Button';
+import { AdminLoginForm } from '@/components/admin/AdminLoginForm';
 
 interface AdminGuardProps {
   children: React.ReactNode;
 }
 
 export function AdminGuard({ children }: AdminGuardProps) {
-  const router = useRouter();
-  const { isAuthenticated, isAdmin, isLoading, isConfigured, profile, user } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading, isConfigured, profile, user, logout } = useAuth();
+  const customerStoreUrl = process.env.NEXT_PUBLIC_CUSTOMER_URL || 'https://sri-raja-rajeshwara-handloom-8gqw.vercel.app';
 
-  useEffect(() => {
-    if (!isLoading && isConfigured) {
-      if (!isAuthenticated) {
-        // Unauthenticated visitor -> redirect to login with return target
-        router.replace('/login?redirect=/admin');
-      } else if (!isAdmin) {
-        // Normal customer account -> block and redirect to customer account page
-        router.replace('/account');
-      }
-    }
-  }, [isLoading, isConfigured, isAuthenticated, isAdmin, router]);
-
-  // Loading state while verifying Supabase session & profiles.role
+  // 1. Loading state while verifying Supabase session & profiles.role
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-8">
+      <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-8">
         <div className="p-8 rounded-xl bg-white border border-accent/20 shadow-sm max-w-sm w-full text-center">
           <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
-          <h2 className="text-base font-serif font-bold text-primary">Verifying Owner Access</h2>
+          <h2 className="text-base font-serif font-bold text-primary">Verifying Administrator Access</h2>
           <p className="text-xs text-muted mt-1">
-            Checking Supabase credentials and database permission...
+            Checking Supabase credentials and database permissions...
           </p>
         </div>
       </div>
     );
   }
 
-  // If Supabase environment variables are missing
+  // 2. If Supabase environment variables are missing
   if (!isConfigured) {
     return (
-      <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-6">
+      <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-6">
         <div className="max-w-md w-full bg-white rounded-xl border border-accent/30 shadow-md p-6 sm:p-8 text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center mx-auto border border-amber-200">
             <Lock className="w-6 h-6" />
@@ -82,64 +69,32 @@ export function AdminGuard({ children }: AdminGuardProps) {
           </div>
 
           <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
-            <Link href="/" className="w-full sm:w-auto">
+            <a href={customerStoreUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
               <Button variant="outline" size="sm" className="w-full">
                 <ArrowLeft className="w-4 h-4 mr-1.5" />
                 Return to Storefront
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </div>
     );
   }
 
-  // Unauthenticated user attempting to access /admin (shows while redirecting)
+  // 3. Unauthenticated visitor: render dedicated Admin Login Form directly
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white rounded-xl border border-accent/30 shadow-md p-6 sm:p-8 text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto border border-primary/20">
-            <Lock className="w-6 h-6" />
-          </div>
-
-          <div>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-accent block mb-1">
-              Owner Control Center
-            </span>
-            <h1 className="text-xl font-serif font-bold text-primary">
-              Admin Authentication Required
-            </h1>
-          </div>
-
-          <p className="text-xs text-charcoal/70 leading-relaxed">
-            Access to Sri Raja Rajeshwara Handloom administrative controls, stock management, and customer orders is restricted to verified administrators. Redirecting to sign in...
-          </p>
-
-          <div className="pt-3 flex flex-col sm:flex-row gap-2.5 justify-center">
-            <Link href="/login?redirect=/admin" className="w-full sm:w-auto">
-              <Button variant="primary" size="sm" className="w-full">
-                <LogIn className="w-4 h-4 mr-1.5" />
-                Sign In as Admin
-              </Button>
-            </Link>
-            <Link href="/" className="w-full sm:w-auto">
-              <Button variant="outline" size="sm" className="w-full">
-                <ArrowLeft className="w-4 h-4 mr-1.5" />
-                Return to Storefront
-              </Button>
-            </Link>
-          </div>
-        </div>
+      <div className="min-h-screen bg-cream flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <AdminLoginForm redirectTarget="/admin" customerStoreUrl={customerStoreUrl} />
       </div>
     );
   }
 
-  // Authenticated, but normal customer role: strictly blocked and redirecting to /account
+  // 4. Authenticated, but normal customer role: strictly blocked
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white rounded-xl border border-red-200 shadow-md p-6 sm:p-8 text-center space-y-4">
+      <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-red-200 shadow-md p-6 sm:p-8 text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-red-50 text-red-700 flex items-center justify-center mx-auto border border-red-200">
             <ShieldAlert className="w-6 h-6" />
           </div>
@@ -154,27 +109,38 @@ export function AdminGuard({ children }: AdminGuardProps) {
           </div>
 
           <p className="text-xs text-charcoal/70 leading-relaxed">
-            Logged in as <strong className="text-charcoal font-semibold">{profile?.fullName || user?.email}</strong> with customer role. This account does not have owner/administrator permissions. Redirecting to your customer account...
+            Logged in as <strong className="text-charcoal font-semibold">{profile?.fullName || user?.email}</strong> with customer role. This account does not have owner/administrator permissions.
           </p>
 
+          <div className="p-3 bg-red-50/60 rounded-lg text-xs text-red-800 text-left border border-red-100">
+            <p className="font-semibold mb-1">Why am I seeing this?</p>
+            <p className="text-[11px] leading-relaxed">
+              The Admin Portal is restricted to Sri Raja Rajeshwara Handloom merchant owners. Normal customer accounts cannot access order dispatches, inventory, or business settings.
+            </p>
+          </div>
+
           <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
-            <Link href="/account" className="w-full sm:w-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => logout()}
+              className="w-full sm:w-auto"
+              leftIcon={<LogOut className="w-4 h-4" />}
+            >
+              Sign Out
+            </Button>
+            <a href={customerStoreUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
               <Button variant="primary" size="sm" className="w-full">
-                Go to My Account
-              </Button>
-            </Link>
-            <Link href="/" className="w-full sm:w-auto">
-              <Button variant="outline" size="sm" className="w-full">
                 <ArrowLeft className="w-4 h-4 mr-1.5" />
-                Return to Storefront
+                Go to Customer Store
               </Button>
-            </Link>
+            </a>
           </div>
         </div>
       </div>
     );
   }
 
-  // Confirmed Admin: profiles.role === 'admin'
+  // 5. Confirmed Admin: profiles.role === 'admin' -> grant full access
   return <>{children}</>;
 }

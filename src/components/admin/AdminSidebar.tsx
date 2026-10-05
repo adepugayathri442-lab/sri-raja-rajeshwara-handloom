@@ -43,6 +43,7 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const { user, profile, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const customerStoreUrl = process.env.NEXT_PUBLIC_CUSTOMER_URL || 'https://sri-raja-rajeshwara-handloom-8gqw.vercel.app';
 
   const isItemActive = (href: string) => {
     if (href === '/admin') {
@@ -60,14 +61,15 @@ export function AdminSidebar() {
           <span className="font-serif font-bold text-sm tracking-wide">SRR Admin</span>
         </Link>
         <div className="flex items-center gap-2">
-          <Link
-            href="/"
+          <a
+            href={customerStoreUrl}
             target="_blank"
+            rel="noopener noreferrer"
             className="text-[11px] text-white/80 hover:text-accent flex items-center gap-1 bg-white/10 px-2.5 py-1 rounded"
           >
             <span>Store</span>
             <ExternalLink className="w-3 h-3" />
-          </Link>
+          </a>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label={mobileOpen ? "Close admin navigation menu" : "Open admin navigation menu"}
@@ -159,14 +161,16 @@ export function AdminSidebar() {
                   </button>
                 </div>
               )}
-              <Link
-                href="/"
+              <a
+                href={customerStoreUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-2 text-xs text-white/70 hover:text-accent transition-colors py-1.5 px-1"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Return to Wholesale Store</span>
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -219,13 +223,15 @@ export function AdminSidebar() {
 
         {/* Return to Storefront & System Info */}
         <div className="p-4 border-t border-primary-light/30 bg-primary-hover/50 space-y-2">
-          <Link
-            href="/"
+          <a
+            href={customerStoreUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-2 text-xs text-white/70 hover:text-accent transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Wholesale Store</span>
-          </Link>
+          </a>
           <div className="text-[10px] text-white/40 pt-1">
             Sri Raja Rajeshwara Handloom • Phase 5
           </div>

@@ -3,47 +3,107 @@
  * Sri Raja Rajeshwara Handloom - Wholesale Cloth Merchant
  * 
  * Exchanges Google OAuth PKCE authorization code for a Supabase session.
- * Safely initializes customer profile records without requiring a separate password
- * or registration form. Preserves original destination (e.g. /checkout).
+ * 
+ * Architecture & Deterministic Routing:
+ * 1. Admin App Mode (NEXT_PUBLIC_APP_MODE === 'admin' or admin domain):
+ *    - Base URL: https://admin-sri-raja-rajeshwara-handloom.vercel.app
+ *    - Role Verification: Requires role === 'admin'.
+ *    - Non-admin attempts: signed out immediately and redirected to /admin/login?error=access_denied_customer
+ *    - Verified admin destination: /admin (Dashboard)
+ *    - NEVER redirects to localhost in production.
+ * 2. Customer App Mode:
+ *    - Base URL: https://sri-raja-rajeshwara-handloom-8gqw.vercel.app
+ *    - Profile synced as customer.
+ *    - Destination: safe path preserved from cookie or query param (default /account).
+ *    - NEVER redirects to localhost in production.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import type { Database } from '@/types/database.types';
+import {
+  getAppBaseUrl,
+  AUTH_NEXT_COOKIE_NAME,
+  isExplicitAdminApp,
+} from '@/lib/auth/auth-urls';
 
 export async function GET(request: NextRequest) {
   const requestUrl = request.nextUrl;
+  const host =
+    request.headers.get('x-forwarded-host') ||
+    request.headers.get('host') ||
+    requestUrl.host ||
+    '';
+
+  const isAdminApp =
+    isExplicitAdminApp() ||
+    host.startsWith('admin.') ||
+    host.includes('admin-sri-raja-rajeshwara-handloom') ||
+    host.includes(':3001');
+
+  // Deterministic Base URL: NEVER localhost in production
+  const baseUrl = getAppBaseUrl(host);
+  const loginPath = isAdminApp ? '/admin/login' : '/login';
+
   const code = requestUrl.searchParams.get('code');
-  const next = requestUrl.searchParams.get('next') || '/account';
   const error = requestUrl.searchParams.get('error');
   const errorDescription = requestUrl.searchParams.get('error_description');
 
-  // Prevent open redirect vulnerabilities: only allow relative paths
-  const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/account';
+  // Retrieve destination from query param or auth cookie
+  const cookieNext = request.cookies.get(AUTH_NEXT_COOKIE_NAME)?.value;
+  const rawNext =
+    requestUrl.searchParams.get('next') ||
+    (cookieNext ? decodeURIComponent(cookieNext) : null);
 
-  // Handle OAuth provider cancellation or errors
+  let safeNext =
+    rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//')
+      ? rawNext
+      : isAdminApp
+      ? '/admin'
+      : '/account';
+
+  // If in Admin app, prevent any redirect to customer-only pages (e.g. /account, /cart, /checkout)
+  if (isAdminApp) {
+    if (
+      safeNext === '/account' ||
+      safeNext.startsWith('/cart') ||
+      safeNext.startsWith('/checkout') ||
+      safeNext === '/login'
+    ) {
+      safeNext = '/admin';
+    }
+  }
+
+  // Handle OAuth provider errors or cancellations
   if (error) {
-    console.error('Google OAuth error from provider:', error, errorDescription);
-    const redirectUrl = new URL('/login', requestUrl.origin);
+    console.error('OAuth error from provider:', error, errorDescription);
+    const redirectUrl = new URL(loginPath, baseUrl);
     const userFacingError =
       error === 'access_denied'
-        ? 'Google sign-in was cancelled. Please try again or sign in with your email.'
+        ? 'Google sign-in was cancelled. Please try again.'
         : errorDescription || error;
     redirectUrl.searchParams.set('error', userFacingError);
-    return NextResponse.redirect(redirectUrl);
+
+    const errorResponse = NextResponse.redirect(redirectUrl);
+    errorResponse.cookies.delete(AUTH_NEXT_COOKIE_NAME);
+    return errorResponse;
   }
 
   if (code) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const supabaseKey =
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      const redirectUrl = new URL('/login', requestUrl.origin);
+      const redirectUrl = new URL(loginPath, baseUrl);
       redirectUrl.searchParams.set('error', 'Authentication service configuration is missing.');
-      return NextResponse.redirect(redirectUrl);
+      const errRes = NextResponse.redirect(redirectUrl);
+      errRes.cookies.delete(AUTH_NEXT_COOKIE_NAME);
+      return errRes;
     }
 
-    let redirectTargetUrl = new URL(safeNext, requestUrl.origin);
+    let redirectTargetUrl = new URL(safeNext, baseUrl);
     let response = NextResponse.redirect(redirectTargetUrl);
 
     const supabase = createServerClient<Database>(
@@ -71,7 +131,9 @@ export async function GET(request: NextRequest) {
 
     if (!exchangeError) {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
         if (user) {
           const googleFullName =
@@ -79,16 +141,42 @@ export async function GET(request: NextRequest) {
             (user.user_metadata?.name as string) ||
             '';
 
-          // Query existing profile to verify state
+          // Query existing profile to verify authorization
           const { data: existingProfile } = await supabase
             .from('profiles')
             .select('id, full_name, role')
             .eq('id', user.id)
             .maybeSingle();
 
+          // ------------------------------------------------------------------
+          // CASE 1: ADMIN APPLICATION
+          // ------------------------------------------------------------------
+          if (isAdminApp) {
+            // Strictly check admin role. Customers or unverified users CANNOT access admin.
+            if (!existingProfile || existingProfile.role !== 'admin') {
+              // Sign out from admin context so customer session is not active on admin site
+              await supabase.auth.signOut();
+              redirectTargetUrl = new URL(
+                '/admin/login?error=access_denied_customer',
+                baseUrl
+              );
+              response = NextResponse.redirect(redirectTargetUrl);
+              response.cookies.delete(AUTH_NEXT_COOKIE_NAME);
+              return response;
+            }
+
+            // Verified administrator: ensure destination is /admin
+            redirectTargetUrl = new URL(safeNext || '/admin', baseUrl);
+            response = NextResponse.redirect(redirectTargetUrl);
+            response.cookies.delete(AUTH_NEXT_COOKIE_NAME);
+            return response;
+          }
+
+          // ------------------------------------------------------------------
+          // CASE 2: CUSTOMER APPLICATION
+          // ------------------------------------------------------------------
           if (!existingProfile) {
-            // New Google user: Ensure customer profile exists
-            // RULE: Role is ALWAYS 'customer' — NEVER grant admin automatically
+            // New Google user on customer site: create customer profile record
             await supabase.from('profiles').insert({
               id: user.id,
               full_name: googleFullName,
@@ -99,36 +187,34 @@ export async function GET(request: NextRequest) {
               role: 'customer',
             });
           } else {
-            // Existing customer profile: preserve all existing details.
-            // Only backfill full_name if it was completely blank and Google provides it.
+            // Backfill name if missing
             if (!existingProfile.full_name && googleFullName) {
               await supabase
                 .from('profiles')
                 .update({ full_name: googleFullName })
                 .eq('id', user.id);
             }
-
-            // If an existing verified admin logs in with Google and no custom redirect was requested, send to /admin
-            if (existingProfile.role === 'admin' && safeNext === '/account') {
-              redirectTargetUrl = new URL('/admin', requestUrl.origin);
-              response = NextResponse.redirect(redirectTargetUrl);
-            }
           }
         }
       } catch (profileErr) {
-        // Non-blocking fallback; Supabase database trigger handles integrity
         console.warn('Profile synchronization notice during Google OAuth exchange:', profileErr);
       }
 
+      response.cookies.delete(AUTH_NEXT_COOKIE_NAME);
       return response;
     }
 
     console.error('Failed to exchange OAuth code for session:', exchangeError.message);
-    const redirectUrl = new URL('/login', requestUrl.origin);
+    const redirectUrl = new URL(loginPath, baseUrl);
     redirectUrl.searchParams.set('error', exchangeError.message);
-    return NextResponse.redirect(redirectUrl);
+    const errRes = NextResponse.redirect(redirectUrl);
+    errRes.cookies.delete(AUTH_NEXT_COOKIE_NAME);
+    return errRes;
   }
 
   // Fallback: accessed callback without authorization code or error
-  return NextResponse.redirect(new URL('/login', requestUrl.origin));
+  const fallbackUrl = new URL(loginPath, baseUrl);
+  const fallbackRes = NextResponse.redirect(fallbackUrl);
+  fallbackRes.cookies.delete(AUTH_NEXT_COOKIE_NAME);
+  return fallbackRes;
 }

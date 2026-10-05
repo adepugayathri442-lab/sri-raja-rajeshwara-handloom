@@ -55,17 +55,6 @@ export function Header() {
             >
               Bulk Enquiry Form
             </Link>
-
-            {/* Admin entry always accessible pointing directly to /admin */}
-            <span className="text-white/40 hidden sm:inline">|</span>
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-accent text-charcoal font-bold text-xs hover:bg-accent-hover transition-colors shadow-2xs"
-              title="Owner Operations Dashboard"
-            >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Admin Dashboard</span>
-            </Link>
           </div>
         </div>
       </div>
@@ -138,16 +127,6 @@ export function Header() {
             >
               <User className="w-4 h-4" />
               <span>{isAuthenticated ? (profile?.fullName?.split(' ')[0] || 'Account') : 'Login'}</span>
-            </Link>
-
-            {/* Owner Admin Panel Action */}
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-accent text-charcoal hover:bg-accent-hover transition-colors shadow-2xs border border-accent/40"
-              title="Open Owner Control Center"
-            >
-              <ShieldCheck className="w-4 h-4 text-primary" />
-              <span>Admin Panel</span>
             </Link>
 
             {/* Wholesale Cart */}

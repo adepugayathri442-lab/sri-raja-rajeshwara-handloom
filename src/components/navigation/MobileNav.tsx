@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Menu, X, Search, ShoppingBag, MessageCircle, ArrowRight, User, ShieldCheck } from 'lucide-react';
+import { Menu, X, Search, ShoppingBag, MessageCircle, ArrowRight, User } from 'lucide-react';
 import { siteConfig } from '@/config/site';
 import { businessConfig } from '@/config/business';
 import { WHOLESALE_CATEGORIES } from '@/config/categories';
@@ -219,19 +219,6 @@ export function MobileNav() {
             >
               <MessageCircle className="w-4 h-4 text-accent" />
               <span>Wholesale Bulk Enquiry</span>
-            </Link>
-
-            {/* Owner Admin Panel entry */}
-            <Link
-              href="/admin"
-              onClick={closeDrawer}
-              className="flex items-center justify-between px-3 py-2.5 text-xs sm:text-sm font-semibold text-charcoal bg-accent/20 border border-accent/40 rounded-md hover:bg-accent/30 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-primary" />
-                <span>Admin Dashboard</span>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 text-primary" />
             </Link>
           </div>
         </div>

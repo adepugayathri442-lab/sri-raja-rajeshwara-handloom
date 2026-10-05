@@ -1,13 +1,13 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { ExternalLink, Database, LogOut } from 'lucide-react';
 import { Badge } from '@/components/common/Badge';
 import { useAuth } from '@/lib/auth/auth-context';
 
 export function AdminHeader() {
   const { user, profile, logout, isConfigured } = useAuth();
+  const customerStoreUrl = process.env.NEXT_PUBLIC_CUSTOMER_URL || 'https://sri-raja-rajeshwara-handloom-8gqw.vercel.app';
 
   return (
     <header className="hidden lg:flex h-16 bg-surface border-b border-border px-6 items-center justify-between shadow-2xs">
@@ -23,14 +23,15 @@ export function AdminHeader() {
       </div>
 
       <div className="flex items-center gap-4 text-xs">
-        <Link
-          href="/"
+        <a
+          href={customerStoreUrl}
           target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-muted hover:text-primary transition-colors"
         >
           <span>View Storefront</span>
           <ExternalLink className="w-3.5 h-3.5" />
-        </Link>
+        </a>
 
         <div className="flex items-center gap-2 pl-3 border-l border-border">
           <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs">

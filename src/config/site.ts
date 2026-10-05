@@ -18,6 +18,9 @@ export const siteConfig = {
   tagline: businessConfig.tagline,
   description: businessConfig.shortDescription,
   url: process.env.NEXT_PUBLIC_SITE_URL || "https://sri-raja-rajeshwara-handloom-8gqw.vercel.app",
+  customerUrl: process.env.NEXT_PUBLIC_CUSTOMER_URL || "https://sri-raja-rajeshwara-handloom-8gqw.vercel.app",
+  adminUrl: process.env.NEXT_PUBLIC_ADMIN_URL || "https://admin-sri-raja-rajeshwara-handloom.vercel.app",
+  appMode: (process.env.NEXT_PUBLIC_APP_MODE || "customer") as "customer" | "admin",
   ogImage: "/images/og-wholesale.jpg",
 
   mainNav: [
