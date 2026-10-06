@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Sri Raja Rajeshwara Handloom",
+    "slug": "sri-raja-rajeshwara-handloom",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D3B2E"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.srirajarajeshwara.handloom"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0D3B2E"
+      },
+      "package": "com.srirajarajeshwara.handloom",
+      "edgeToEdge": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": []
+  }
+}
