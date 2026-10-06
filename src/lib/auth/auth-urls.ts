@@ -45,12 +45,26 @@ export function getAppBaseUrl(hostOrOrigin?: string): string {
     return 'http://localhost:3000';
   }
 
-  // Deterministic Production URL (NEVER localhost in production)
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_CUSTOMER_URL ||
-    PRODUCTION_SITE_URL
-  );
+  // In browser on production, use the actual origin if on vercel.app or custom domain
+  if (typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost')) {
+    return window.location.origin;
+  }
+
+  // Server context: verify host header if provided
+  if (hostOrOrigin && !hostOrOrigin.includes('localhost') && !hostOrOrigin.includes('127.0.0.1')) {
+    const cleanHost = hostOrOrigin.replace(/^https?:\/\//, '').split('/')[0];
+    if (cleanHost && !cleanHost.includes('admin-') && !cleanHost.includes('-8gqw')) {
+      return `https://${cleanHost}`;
+    }
+  }
+
+  // Deterministic Production URL
+  const envUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_CUSTOMER_URL;
+  if (envUrl && !envUrl.includes('admin-') && !envUrl.includes('-8gqw')) {
+    return envUrl;
+  }
+
+  return PRODUCTION_SITE_URL;
 }
 
 /**
