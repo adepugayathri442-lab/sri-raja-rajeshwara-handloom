@@ -2,19 +2,22 @@
  * Deterministic Authentication & OAuth URL Resolver
  * Sri Raja Rajeshwara Handloom - Wholesale Cloth Merchant
  * 
- * Unified Production Architecture:
- * - Single Vercel Project & Deployment: https://sri-raja-rajeshwara-handloom.vercel.app
+ * Strict Production Architecture:
+ * - Single Production Domain: https://sri-raja-rajeshwara-handloom.vercel.app
  * - Customer Website: https://sri-raja-rajeshwara-handloom.vercel.app/
  * - Admin Portal: https://sri-raja-rajeshwara-handloom.vercel.app/admin
- * - Unified Auth Callback: https://sri-raja-rajeshwara-handloom.vercel.app/auth/callback
+ * - Production OAuth Callback: https://sri-raja-rajeshwara-handloom.vercel.app/auth/callback
  * 
- * Localhost is allowed strictly during local development.
- * In production builds, localhost is NEVER used under ANY condition.
+ * Rules:
+ * - NEVER use deployment-specific Vercel preview domains (e.g. -8gqw).
+ * - NEVER use window.location.origin for production OAuth callbacks.
+ * - Localhost is permitted ONLY during non-production local development.
  */
 
 export const PRODUCTION_SITE_URL = 'https://sri-raja-rajeshwara-handloom.vercel.app';
-export const PRODUCTION_CUSTOMER_URL = PRODUCTION_SITE_URL;
-export const PRODUCTION_ADMIN_URL = `${PRODUCTION_SITE_URL}/admin`;
+export const PRODUCTION_CUSTOMER_URL = 'https://sri-raja-rajeshwara-handloom.vercel.app';
+export const PRODUCTION_ADMIN_URL = 'https://sri-raja-rajeshwara-handloom.vercel.app/admin';
+export const PRODUCTION_AUTH_CALLBACK_URL = 'https://sri-raja-rajeshwara-handloom.vercel.app/auth/callback';
 export const AUTH_NEXT_COOKIE_NAME = 'srr_auth_next';
 
 export function isExplicitAdminApp(): boolean {
@@ -36,42 +39,20 @@ export function isLocalhost(hostOrOrigin?: string): boolean {
   return false;
 }
 
-export function getAppBaseUrl(hostOrOrigin?: string): string {
-  // Local development check (strictly only for non-production localhost / 127.0.0.1)
-  if (isLocalhost(hostOrOrigin)) {
-    if (typeof window !== 'undefined' && window.location.origin) {
-      return window.location.origin;
-    }
+export function getAppBaseUrl(): string {
+  if (isLocalhost()) {
     return 'http://localhost:3000';
   }
-
-  // In browser on production, use the actual origin if on vercel.app or custom domain
-  if (typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost')) {
-    return window.location.origin;
-  }
-
-  // Server context: verify host header if provided
-  if (hostOrOrigin && !hostOrOrigin.includes('localhost') && !hostOrOrigin.includes('127.0.0.1')) {
-    const cleanHost = hostOrOrigin.replace(/^https?:\/\//, '').split('/')[0];
-    if (cleanHost && !cleanHost.includes('admin-') && !cleanHost.includes('-8gqw')) {
-      return `https://${cleanHost}`;
-    }
-  }
-
-  // Deterministic Production URL
-  const envUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_CUSTOMER_URL;
-  if (envUrl && !envUrl.includes('admin-') && !envUrl.includes('-8gqw')) {
-    return envUrl;
-  }
-
   return PRODUCTION_SITE_URL;
 }
 
 /**
  * Returns EXACT unified OAuth callback URL without query params.
- * Single production callback: https://sri-raja-rajeshwara-handloom.vercel.app/auth/callback
+ * In production, strictly: https://sri-raja-rajeshwara-handloom.vercel.app/auth/callback
  */
-export function getAuthCallbackUrl(hostOrOrigin?: string): string {
-  const baseUrl = getAppBaseUrl(hostOrOrigin);
-  return `${baseUrl}/auth/callback`;
+export function getAuthCallbackUrl(): string {
+  if (isLocalhost()) {
+    return 'http://localhost:3000/auth/callback';
+  }
+  return PRODUCTION_AUTH_CALLBACK_URL;
 }

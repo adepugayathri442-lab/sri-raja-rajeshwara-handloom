@@ -62,13 +62,7 @@ function createRedirectWithCookies(
 
 export async function GET(request: NextRequest) {
   const requestUrl = request.nextUrl;
-  const host =
-    request.headers.get('x-forwarded-host') ||
-    request.headers.get('host') ||
-    requestUrl.host ||
-    '';
-
-  const baseUrl = getAppBaseUrl(host);
+  const baseUrl = getAppBaseUrl();
 
   const code = requestUrl.searchParams.get('code');
   const error = requestUrl.searchParams.get('error');
