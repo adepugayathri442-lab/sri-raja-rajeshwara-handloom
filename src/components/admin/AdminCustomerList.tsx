@@ -138,6 +138,54 @@ export function AdminCustomerList() {
         </div>
       </div>
 
+      {/* Customer Metric Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card variant="default" className="p-4 sm:p-5 border-border bg-surface shadow-2xs">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs text-muted font-medium">Total Customers</span>
+            <div className="w-8 h-8 rounded-lg bg-navy/10 text-navy flex items-center justify-center">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-serif font-bold text-primary">
+            {customers.length}
+          </div>
+          <p className="text-[11px] text-muted mt-0.5">
+            Registered wholesale merchants & buyers
+          </p>
+        </Card>
+
+        <Card variant="default" className="p-4 sm:p-5 border-border bg-surface shadow-2xs">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs text-muted font-medium">Active Ordering Accounts</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+              <Store className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-serif font-bold text-emerald-800">
+            {customers.filter((c) => c.totalOrders > 0).length}
+          </div>
+          <p className="text-[11px] text-muted mt-0.5">
+            Merchants with confirmed wholesale orders
+          </p>
+        </Card>
+
+        <Card variant="default" className="p-4 sm:p-5 border-border bg-surface shadow-2xs">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs text-muted font-medium">Cumulative Purchases</span>
+            <div className="w-8 h-8 rounded-lg bg-primary-subtle text-primary flex items-center justify-center">
+              <span className="text-xs font-bold font-serif">₹</span>
+            </div>
+          </div>
+          <div className="text-2xl font-serif font-bold text-primary">
+            ₹{customers.reduce((sum, c) => sum + c.totalPurchaseAmount, 0).toLocaleString('en-IN')}
+          </div>
+          <p className="text-[11px] text-muted mt-0.5">
+            Total lifetime B2B transactions
+          </p>
+        </Card>
+      </div>
+
       {/* Filter Bar */}
       <Card variant="default" className="p-4 sm:p-5 border-border bg-surface shadow-2xs space-y-3">
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">

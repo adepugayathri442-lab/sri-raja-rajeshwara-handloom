@@ -121,7 +121,7 @@ export function Header() {
 
             {/* Merchant Login / Account */}
             <Link
-              href={isAuthenticated ? '/account' : '/login'}
+              href={isAuthenticated ? '/account' : '/login?next=/account'}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-charcoal/80 hover:text-primary hover:bg-surface-subtle rounded-md transition-colors"
               title={isAuthenticated ? 'My Merchant Account' : 'Sign In'}
             >

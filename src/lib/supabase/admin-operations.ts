@@ -916,6 +916,7 @@ export async function getAdminCustomers(options: {
         orders:orders(id, grand_total, order_status),
         addresses:addresses(city, state)
       `)
+      .eq('role', 'customer')
       .order('created_at', { ascending: false });
 
     if (options.customerType && options.customerType !== 'all') {
@@ -1437,6 +1438,25 @@ export async function getCustomerOrders(userId: string): Promise<AdminOrderListI
     });
   } catch (err) {
     console.error('Failed to getCustomerOrders:', err);
+    return [];
+  }
+}
+
+export async function getCustomerAddresses(userId: string): Promise<AddressRow[]> {
+  try {
+    const supabase = createClient();
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+      .from('addresses')
+      .select('*')
+      .eq('user_id', userId)
+      .order('is_default', { ascending: false });
+
+    if (error || !data) return [];
+    return data as AddressRow[];
+  } catch (err) {
+    console.error('Failed to getCustomerAddresses:', err);
     return [];
   }
 }

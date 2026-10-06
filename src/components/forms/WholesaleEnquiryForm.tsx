@@ -1,15 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/common/Button';
 import { WHOLESALE_CATEGORIES } from '@/config/categories';
 import { getWholesaleFormWhatsAppUrl } from '@/lib/whatsapp';
 import { businessConfig } from '@/config/business';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import { emitWhatsAppEnquiryEvent } from '@/lib/notifications/whatsapp-events';
-import { MessageCircle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { useAuth } from '@/lib/auth/auth-context';
+import { MessageCircle, CheckCircle2, AlertCircle, Loader2, Lock } from 'lucide-react';
 
 export function WholesaleEnquiryForm() {
+  const router = useRouter();
+  const { isAuthenticated, profile, user } = useAuth();
+
   const [businessName, setBusinessName] = useState('');
   const [contactPerson, setContactPerson] = useState('');
   const [phone, setPhone] = useState('');
@@ -24,6 +29,11 @@ export function WholesaleEnquiryForm() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const effectiveBusinessName = businessName !== '' ? businessName : (profile?.businessName || '');
+  const effectiveContactPerson = contactPerson !== '' ? contactPerson : (profile?.fullName || '');
+  const effectivePhone = phone !== '' ? phone : (profile?.phone || '');
+  const effectiveEmail = email !== '' ? email : (profile?.email || user?.email || '');
+
   const toggleCategory = (catName: string) => {
     setSelectedCategories((prev) =>
       prev.includes(catName) ? prev.filter((c) => c !== catName) : [...prev, catName]
@@ -34,7 +44,12 @@ export function WholesaleEnquiryForm() {
     e.preventDefault();
     setError(null);
 
-    if (!businessName.trim() || !contactPerson.trim() || !phone.trim() || !city.trim()) {
+    if (!isAuthenticated) {
+      router.push('/login?next=/wholesale-enquiry');
+      return;
+    }
+
+    if (!effectiveBusinessName.trim() || !effectiveContactPerson.trim() || !effectivePhone.trim() || !city.trim()) {
       setError('Please fill in all required fields (Shop Name, Contact Person, Phone, City).');
       return;
     }
@@ -50,10 +65,10 @@ export function WholesaleEnquiryForm() {
         const supabase = createClient();
         if (supabase) {
           const { data } = await supabase.from('wholesale_enquiries').insert({
-            name: contactPerson.trim(),
-            business_name: businessName.trim(),
-            phone: phone.trim(),
-            email: email.trim() || null,
+            name: effectiveContactPerson.trim(),
+            business_name: effectiveBusinessName.trim(),
+            phone: effectivePhone.trim(),
+            email: effectiveEmail.trim() || null,
             city: city.trim(),
             state: state.trim(),
             products_interested: selectedCategories.join(', '),
@@ -73,9 +88,9 @@ export function WholesaleEnquiryForm() {
     // Emit non-blocking WhatsApp event for n8n automation
     emitWhatsAppEnquiryEvent({
       enquiryId,
-      customerName: contactPerson.trim(),
-      businessName: businessName.trim() || null,
-      customerPhone: phone.trim(),
+      customerName: effectiveContactPerson.trim(),
+      businessName: effectiveBusinessName.trim() || null,
+      customerPhone: effectivePhone.trim(),
       customerType: 'Wholesale Buyer',
       enquiryMessage: message.trim() || `Interested in: ${selectedCategories.join(', ')}`,
       createdAt,
@@ -86,9 +101,9 @@ export function WholesaleEnquiryForm() {
   };
 
   const whatsappUrl = getWholesaleFormWhatsAppUrl({
-    name: contactPerson || 'Merchant',
-    businessName: businessName || 'Wholesale Buyer',
-    phone: phone || 'Not provided',
+    name: effectiveContactPerson || 'Merchant',
+    businessName: effectiveBusinessName || 'Wholesale Buyer',
+    phone: effectivePhone || 'Not provided',
     city: city || 'Telangana',
     state: state || 'Telangana',
     productsInterested: selectedCategories.join(', ') || 'Wholesale Textiles',
@@ -141,7 +156,7 @@ export function WholesaleEnquiryForm() {
           <input
             type="text"
             required
-            value={businessName}
+            value={effectiveBusinessName}
             onChange={(e) => setBusinessName(e.target.value)}
             placeholder="e.g. Balaji Cloth Store"
             className="w-full px-3 py-2 text-xs bg-surface border border-accent/30 rounded-md text-charcoal focus:outline-none focus:border-accent"
@@ -155,7 +170,7 @@ export function WholesaleEnquiryForm() {
           <input
             type="text"
             required
-            value={contactPerson}
+            value={effectiveContactPerson}
             onChange={(e) => setContactPerson(e.target.value)}
             placeholder="e.g. Ramesh Reddy"
             className="w-full px-3 py-2 text-xs bg-surface border border-accent/30 rounded-md text-charcoal focus:outline-none focus:border-accent"
@@ -171,7 +186,7 @@ export function WholesaleEnquiryForm() {
           <input
             type="tel"
             required
-            value={phone}
+            value={effectivePhone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="e.g. 9876543210"
             className="w-full px-3 py-2 text-xs bg-surface border border-accent/30 rounded-md text-charcoal focus:outline-none focus:border-accent"
@@ -184,7 +199,7 @@ export function WholesaleEnquiryForm() {
           </label>
           <input
             type="email"
-            value={email}
+            value={effectiveEmail}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="e.g. merchant@clothstore.com"
             className="w-full px-3 py-2 text-xs bg-surface border border-accent/30 rounded-md text-charcoal focus:outline-none focus:border-accent"
@@ -286,6 +301,11 @@ export function WholesaleEnquiryForm() {
             <span className="flex items-center justify-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin" />
               Recording Enquiry...
+            </span>
+          ) : !isAuthenticated ? (
+            <span className="flex items-center justify-center gap-2">
+              <Lock className="w-4 h-4 text-accent" />
+              Sign In to Submit Wholesale Enquiry
             </span>
           ) : (
             'Submit Wholesale Enquiry'

@@ -20,7 +20,7 @@ export default function RegisterPage() {
           <div className="text-center mb-6">
             <Logo variant="auth" className="mb-2" />
             <h1 className="text-xl sm:text-2xl font-serif font-bold text-primary mt-2">
-              Register Wholesale Merchant Account
+              Create Your Wholesale Account
             </h1>
             <p className="text-xs text-muted mt-1 max-w-md mx-auto">
               Exclusively for retail cloth stores, apparel resellers, institutional buyers, and bulk purchasers.

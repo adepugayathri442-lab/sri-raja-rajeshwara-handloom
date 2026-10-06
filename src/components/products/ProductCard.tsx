@@ -14,8 +14,10 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { ShoppingBag, MessageCircle, ArrowRight, Package, Check, AlertCircle } from 'lucide-react';
 import type { Product } from '@/types';
+import { useAuth } from '@/lib/auth/auth-context';
 import { useCart } from '@/lib/cart/cart-context';
 import { getProductEnquiryUrl } from '@/lib/whatsapp';
 
@@ -24,6 +26,8 @@ export interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
 
@@ -33,6 +37,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     if (isOutOfStock) return;
+    
     addItem({
       productId: product.id,
       productCode: product.productCode,
@@ -41,6 +46,12 @@ export function ProductCard({ product }: ProductCardProps) {
       pricePerPiece: product.pricePerPiece,
       imageUrl: product.imageUrl,
     }, 1);
+
+    if (!isAuthenticated) {
+      router.push('/login?next=/cart');
+      return;
+    }
+
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };

@@ -24,6 +24,7 @@ export interface RegisterData {
   email: string;
   password: string;
   businessName?: string;
+  gstNumber?: string;
   customerType: CustomerType;
 }
 
@@ -233,6 +234,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (authError) {
+        if (authError.message.toLowerCase().includes('already registered')) {
+          return { error: 'An account with this email address already exists. Please sign in instead.' };
+        }
+        if (authError.message.toLowerCase().includes('password')) {
+          return { error: 'Password must be at least 6 characters.' };
+        }
         return { error: authError.message };
       }
 
@@ -240,7 +247,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: 'Registration failed to create user. Please try again.' };
       }
 
-      // Upsert into public.profiles
+      // Supabase user enumeration prevention: existing user has empty identities
+      if (authData.user.identities && authData.user.identities.length === 0) {
+        return { error: 'An account with this email address already exists. Please sign in instead.' };
+      }
+
+      // Upsert into public.profiles strictly with role: 'customer'
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: authData.user.id,
         full_name: data.fullName.trim(),
@@ -248,11 +260,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: data.email.trim().toLowerCase(),
         customer_type: data.customerType,
         business_name: data.businessName?.trim() || null,
+        gst_number: data.gstNumber?.trim().toUpperCase() || null,
         role: 'customer',
       });
 
       if (profileError) {
-        // If trigger already handled this, ignore duplicate key error
         if (!profileError.message.includes('duplicate')) {
           console.warn('Profile creation warning:', profileError.message);
         }

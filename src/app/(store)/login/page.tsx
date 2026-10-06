@@ -41,7 +41,7 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted">
             <Link href="/register" className="text-primary hover:text-accent font-semibold transition-colors">
-              Register New Wholesale Account →
+              Create Wholesale Account →
             </Link>
 
             <a

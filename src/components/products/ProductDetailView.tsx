@@ -15,6 +15,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { 
   ShoppingBag, 
   MessageCircle, 
@@ -30,6 +31,7 @@ import {
 } from 'lucide-react';
 import type { Product } from '@/types';
 import { Badge } from '@/components/common/Badge';
+import { useAuth } from '@/lib/auth/auth-context';
 import { useCart } from '@/lib/cart/cart-context';
 import { getProductEnquiryUrl } from '@/lib/whatsapp';
 
@@ -38,6 +40,8 @@ export interface ProductDetailViewProps {
 }
 
 export function ProductDetailView({ product }: ProductDetailViewProps) {
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const { addItem } = useCart();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -72,6 +76,11 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
       pricePerPiece: product.pricePerPiece,
       imageUrl: images[0] || product.imageUrl,
     }, quantity);
+
+    if (!isAuthenticated) {
+      router.push('/login?next=/cart');
+      return;
+    }
 
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2500);

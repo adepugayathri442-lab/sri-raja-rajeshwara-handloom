@@ -205,7 +205,7 @@ export function MobileNav() {
           {/* Account & Inquiry Links */}
           <div className="pt-2 border-t border-border/80 space-y-1">
             <Link
-              href={isAuthenticated ? '/account' : '/login'}
+              href={isAuthenticated ? '/account' : '/login?next=/account'}
               onClick={closeDrawer}
               className="flex items-center gap-2.5 px-3 py-2 text-xs sm:text-sm text-charcoal hover:bg-surface-subtle rounded-md"
             >
