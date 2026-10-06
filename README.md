@@ -1,38 +1,36 @@
-# Sri Raja Rajeshwara Handloom — Wholesale Cloth Merchant
+# SRI RAJA RAJESHWARA HANDLOOM — Wholesale Cloth Merchant
 
-Live Production URL: [https://sri-raja-rajeshwara-handloom-8gqw.vercel.app](https://sri-raja-rajeshwara-handloom-8gqw.vercel.app)
+Traditional Textiles. Wholesale Prices. Trusted Supply.
 
-## Getting Started
+## Production Websites (Unified Architecture)
 
-First, run the development server:
+- **Wholesale Customer Website:** [https://sri-raja-rajeshwara-handloom.vercel.app](https://sri-raja-rajeshwara-handloom.vercel.app)
+- **Merchant Admin Portal:** [https://sri-raja-rajeshwara-handloom.vercel.app/admin](https://sri-raja-rajeshwara-handloom.vercel.app/admin)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Business Model
+- **Type:** 100% Wholesale / B2B Only
+- **Target Customers:** Retail shops, resellers, institutions, and bulk buyers across India.
+- **Pricing:** Fixed wholesale price per piece (no retail pricing, no quantity tiers).
+- **Minimum Order:** Any quantity permitted with fixed piece rate.
+- **Delivery:** Pan-India delivery via transport and logistics partners.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Core Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Customer Storefront
+- Wholesale textile catalogue (12 categories)
+- Product details with high-resolution imagery and specifications
+- Wholesale order cart & checkout with transport logistics options
+- Real-time customer order tracking
+- Direct WhatsApp enquiry integration
+- Merchant customer registration & account management
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Admin Operations Portal (`/admin`)
+- Operations dashboard with key wholesale metrics
+- Catalogue & product management (add, edit, stock, images)
+- 12 category management
+- Wholesale orders dispatch & status tracking
+- Customer accounts & verification
+- Inventory & Quick Stock Adjustment
+- Wholesale enquiries review & processing
+- State-wise delivery charge management
+- Reports & trade settings

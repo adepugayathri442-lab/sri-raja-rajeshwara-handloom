@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useMemo, useCall
 import type { User } from '@supabase/supabase-js';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 import type { CustomerType, UserRole } from '@/types/database.types';
-import { getAuthCallbackUrl, AUTH_NEXT_COOKIE_NAME, isExplicitAdminApp } from '@/lib/auth/auth-urls';
+import { getAuthCallbackUrl, AUTH_NEXT_COOKIE_NAME } from '@/lib/auth/auth-urls';
 
 export interface UserProfile {
   id: string;
@@ -223,27 +223,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const isAdminContext =
-        isExplicitAdminApp() ||
-        (typeof window !== 'undefined' &&
-          (window.location.hostname.startsWith('admin.') ||
-            window.location.hostname.includes('admin-sri-raja-rajeshwara-handloom')));
+      const isClientAdmin =
+        typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
 
-      const defaultTarget = isAdminContext ? '/admin' : '/account';
+      const defaultTarget = isClientAdmin ? '/admin' : '/account';
       const safeRedirect = redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')
         ? redirectTo
         : defaultTarget;
 
       // Store requested redirect in cookie so the OAuth callback route can retrieve it
-      // without attaching query parameters to the OAuth redirect URL (which causes Supabase to reject it)
+      // without attaching query parameters to the OAuth redirect URL
       if (typeof document !== 'undefined') {
         const isSecure = window.location.protocol === 'https:' ? '; Secure' : '';
         document.cookie = `${AUTH_NEXT_COOKIE_NAME}=${encodeURIComponent(safeRedirect)}; path=/; max-age=600; SameSite=Lax${isSecure}`;
       }
 
-      // Exact production callback URL (NO query parameters)
-      // Admin: https://admin-sri-raja-rajeshwara-handloom.vercel.app/auth/callback
-      // Customer: https://sri-raja-rajeshwara-handloom-8gqw.vercel.app/auth/callback
+      // Exact production callback URL: https://sri-raja-rajeshwara-handloom.vercel.app/auth/callback
       const callbackUrl = getAuthCallbackUrl();
 
       const { data, error } = await supabase.auth.signInWithOAuth({

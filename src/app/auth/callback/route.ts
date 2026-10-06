@@ -5,17 +5,15 @@
  * Exchanges Google OAuth PKCE authorization code for a Supabase session.
  * 
  * Architecture & Deterministic Routing:
- * 1. Admin App Mode (NEXT_PUBLIC_APP_MODE === 'admin' or admin domain):
- *    - Base URL: https://admin-sri-raja-rajeshwara-handloom.vercel.app
- *    - Role Verification: Requires role === 'admin'.
+ * 1. Unified Single Domain: https://sri-raja-rajeshwara-handloom.vercel.app
+ * 2. Admin Flow (destination is /admin or starts with /admin):
+ *    - Role Verification: Requires existingProfile.role === 'admin'.
  *    - Non-admin attempts: signed out immediately and redirected to /admin/login?error=access_denied_customer
  *    - Verified admin destination: /admin (Dashboard)
- *    - NEVER redirects to localhost in production.
- * 2. Customer App Mode:
- *    - Base URL: https://sri-raja-rajeshwara-handloom-8gqw.vercel.app
- *    - Profile synced as customer.
+ * 3. Customer Flow (destination is /account, /checkout, etc.):
+ *    - Customer profile created/updated.
  *    - Destination: safe path preserved from cookie or query param (default /account).
- *    - NEVER redirects to localhost in production.
+ * 4. NEVER redirects to localhost in production.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
@@ -24,7 +22,6 @@ import type { Database } from '@/types/database.types';
 import {
   getAppBaseUrl,
   AUTH_NEXT_COOKIE_NAME,
-  isExplicitAdminApp,
 } from '@/lib/auth/auth-urls';
 
 export async function GET(request: NextRequest) {
@@ -35,15 +32,7 @@ export async function GET(request: NextRequest) {
     requestUrl.host ||
     '';
 
-  const isAdminApp =
-    isExplicitAdminApp() ||
-    host.startsWith('admin.') ||
-    host.includes('admin-sri-raja-rajeshwara-handloom') ||
-    host.includes(':3001');
-
-  // Deterministic Base URL: NEVER localhost in production
   const baseUrl = getAppBaseUrl(host);
-  const loginPath = isAdminApp ? '/admin/login' : '/login';
 
   const code = requestUrl.searchParams.get('code');
   const error = requestUrl.searchParams.get('error');
@@ -55,24 +44,16 @@ export async function GET(request: NextRequest) {
     requestUrl.searchParams.get('next') ||
     (cookieNext ? decodeURIComponent(cookieNext) : null);
 
-  let safeNext =
+  const isAdminFlow = Boolean(rawNext && rawNext.startsWith('/admin'));
+
+  const safeNext =
     rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//')
       ? rawNext
-      : isAdminApp
+      : isAdminFlow
       ? '/admin'
       : '/account';
 
-  // If in Admin app, prevent any redirect to customer-only pages (e.g. /account, /cart, /checkout)
-  if (isAdminApp) {
-    if (
-      safeNext === '/account' ||
-      safeNext.startsWith('/cart') ||
-      safeNext.startsWith('/checkout') ||
-      safeNext === '/login'
-    ) {
-      safeNext = '/admin';
-    }
-  }
+  const loginPath = isAdminFlow ? '/admin/login' : '/login';
 
   // Handle OAuth provider errors or cancellations
   if (error) {
@@ -149,12 +130,12 @@ export async function GET(request: NextRequest) {
             .maybeSingle();
 
           // ------------------------------------------------------------------
-          // CASE 1: ADMIN APPLICATION
+          // CASE 1: ADMIN FLOW (Initiated from /admin or safeNext is /admin)
           // ------------------------------------------------------------------
-          if (isAdminApp) {
+          if (isAdminFlow) {
             // Strictly check admin role. Customers or unverified users CANNOT access admin.
             if (!existingProfile || existingProfile.role !== 'admin') {
-              // Sign out from admin context so customer session is not active on admin site
+              // Sign out from admin context so customer session is not active
               await supabase.auth.signOut();
               redirectTargetUrl = new URL(
                 '/admin/login?error=access_denied_customer',
@@ -165,15 +146,16 @@ export async function GET(request: NextRequest) {
               return response;
             }
 
-            // Verified administrator: ensure destination is /admin
-            redirectTargetUrl = new URL(safeNext || '/admin', baseUrl);
+            // Verified administrator: redirect to /admin (or requested admin sub-route)
+            const adminDestination = safeNext.startsWith('/admin') ? safeNext : '/admin';
+            redirectTargetUrl = new URL(adminDestination, baseUrl);
             response = NextResponse.redirect(redirectTargetUrl);
             response.cookies.delete(AUTH_NEXT_COOKIE_NAME);
             return response;
           }
 
           // ------------------------------------------------------------------
-          // CASE 2: CUSTOMER APPLICATION
+          // CASE 2: CUSTOMER FLOW
           // ------------------------------------------------------------------
           if (!existingProfile) {
             // New Google user on customer site: create customer profile record

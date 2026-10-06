@@ -43,7 +43,7 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const { user, profile, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const customerStoreUrl = process.env.NEXT_PUBLIC_CUSTOMER_URL || 'https://sri-raja-rajeshwara-handloom-8gqw.vercel.app';
+  const customerStoreUrl = '/';
 
   const isItemActive = (href: string) => {
     if (href === '/admin') {

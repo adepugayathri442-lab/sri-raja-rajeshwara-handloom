@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:admin": "NEXT_PUBLIC_APP_MODE=admin next dev -p 3001",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"

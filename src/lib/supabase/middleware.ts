@@ -20,7 +20,7 @@ export async function updateSession(request: NextRequest) {
 
   if (!supabaseUrl || !supabaseKey) {
     // Supabase not yet configured - pass through without blocking
-    return supabaseResponse;
+    return { supabaseResponse, user: null };
   }
 
   const supabase = createServerClient<Database>(
@@ -47,7 +47,9 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Refresh auth token if expired
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  return supabaseResponse;
+  return { supabaseResponse, user };
 }

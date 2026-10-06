@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 
 export function AdminHeader() {
   const { user, profile, logout, isConfigured } = useAuth();
-  const customerStoreUrl = process.env.NEXT_PUBLIC_CUSTOMER_URL || 'https://sri-raja-rajeshwara-handloom-8gqw.vercel.app';
+  const customerStoreUrl = '/';
 
   return (
     <header className="hidden lg:flex h-16 bg-surface border-b border-border px-6 items-center justify-between shadow-2xs">

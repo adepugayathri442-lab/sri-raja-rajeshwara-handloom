@@ -4,29 +4,52 @@
  * Admin Route Guard Component
  * Sri Raja Rajeshwara Handloom - Wholesale Cloth Merchant
  * 
- * Access Control Rules:
- * - Admin access strictly depends on: `profiles.role = 'admin'`
- * - If user is not authenticated: render dedicated AdminLoginForm directly
- * - If user is a normal customer (`role = 'customer'`): BLOCK access with clear denial & link to customer storefront
- * - If user is verified admin (`role = 'admin'`): grant access and render admin children
+ * Strict Access Control Rules:
+ * - Admin access strictly requires: `profiles.role = 'admin'`
+ * - Unauthenticated user accessing /admin or /admin/*:
+ *     Safely routed to /admin/login
+ * - Authenticated normal customer (`role = 'customer'`):
+ *     Strictly blocked with Access Restricted screen and link to customer website
+ * - Authenticated admin (`role = 'admin'`):
+ *     Granted full access to Admin Portal
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
-import { ShieldAlert, Lock, ArrowLeft, Loader2, LogOut } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, Loader2, LogOut } from 'lucide-react';
 import { Button } from '@/components/common/Button';
-import { AdminLoginForm } from '@/components/admin/AdminLoginForm';
 
 interface AdminGuardProps {
   children: React.ReactNode;
 }
 
 export function AdminGuard({ children }: AdminGuardProps) {
-  const { isAuthenticated, isAdmin, isLoading, isConfigured, profile, user, logout } = useAuth();
-  const customerStoreUrl = process.env.NEXT_PUBLIC_CUSTOMER_URL || 'https://sri-raja-rajeshwara-handloom-8gqw.vercel.app';
+  const pathname = usePathname();
+  const router = useRouter();
+  const { isAuthenticated, isAdmin, isLoading, profile, user, logout } = useAuth();
+  const isLoginPage = pathname === '/admin/login';
+
+  // If already authenticated with admin role and visiting /admin/login, send to dashboard
+  useEffect(() => {
+    if (isLoginPage && !isLoading && isAuthenticated && isAdmin) {
+      router.replace('/admin');
+    }
+  }, [isLoginPage, isLoading, isAuthenticated, isAdmin, router]);
+
+  // If unauthenticated and trying to access protected admin pages, send to login
+  useEffect(() => {
+    if (!isLoginPage && !isLoading && !isAuthenticated) {
+      router.replace('/admin/login');
+    }
+  }, [isLoginPage, isLoading, isAuthenticated, router]);
 
   // 1. Loading state while verifying Supabase session & profiles.role
   if (isLoading) {
+    if (isLoginPage) {
+      return <>{children}</>;
+    }
     return (
       <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-8">
         <div className="p-8 rounded-xl bg-white border border-accent/20 shadow-sm max-w-sm w-full text-center">
@@ -40,52 +63,25 @@ export function AdminGuard({ children }: AdminGuardProps) {
     );
   }
 
-  // 2. If Supabase environment variables are missing
-  if (!isConfigured) {
-    return (
-      <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white rounded-xl border border-accent/30 shadow-md p-6 sm:p-8 text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-700 flex items-center justify-center mx-auto border border-amber-200">
-            <Lock className="w-6 h-6" />
-          </div>
-
-          <div>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-accent block mb-1">
-              Admin Portal Security
-            </span>
-            <h1 className="text-xl font-serif font-bold text-primary">
-              Supabase Configuration Required
-            </h1>
-          </div>
-
-          <p className="text-xs text-charcoal/70 leading-relaxed">
-            The admin portal requires active Supabase Database and Auth environment variables in <code className="font-mono bg-surface-alt px-1.5 py-0.5 rounded text-[11px] text-primary">.env.local</code>.
-          </p>
-
-          <div className="bg-surface-alt rounded-lg p-3 text-left border border-accent/20 text-xs font-mono space-y-1 text-charcoal/80">
-            <p className="text-[11px] text-muted font-sans font-semibold uppercase">Required Variables:</p>
-            <p>NEXT_PUBLIC_SUPABASE_URL=...</p>
-            <p>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...</p>
-          </div>
-
-          <div className="pt-2 flex flex-col sm:flex-row gap-2.5 justify-center">
-            <a href={customerStoreUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
-              <Button variant="outline" size="sm" className="w-full">
-                <ArrowLeft className="w-4 h-4 mr-1.5" />
-                Return to Storefront
-              </Button>
-            </a>
-          </div>
+  // 2. Login page handling
+  if (isLoginPage) {
+    if (isAuthenticated && isAdmin) {
+      return (
+        <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-8">
+          <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
+          <p className="text-xs text-muted">Redirecting to Admin Dashboard...</p>
         </div>
-      </div>
-    );
+      );
+    }
+    return <>{children}</>;
   }
 
-  // 3. Unauthenticated visitor: render dedicated Admin Login Form directly
+  // 3. Unauthenticated visitor on protected admin route: redirecting
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-cream flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <AdminLoginForm redirectTarget="/admin" customerStoreUrl={customerStoreUrl} />
+      <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-8">
+        <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
+        <p className="text-xs text-muted">Redirecting to Administrator Sign In...</p>
       </div>
     );
   }
@@ -124,17 +120,17 @@ export function AdminGuard({ children }: AdminGuardProps) {
               variant="outline"
               size="sm"
               onClick={() => logout()}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto cursor-pointer"
               leftIcon={<LogOut className="w-4 h-4" />}
             >
               Sign Out
             </Button>
-            <a href={customerStoreUrl} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
-              <Button variant="primary" size="sm" className="w-full">
+            <Link href="/" className="w-full sm:w-auto">
+              <Button variant="primary" size="sm" className="w-full cursor-pointer">
                 <ArrowLeft className="w-4 h-4 mr-1.5" />
                 Go to Customer Store
               </Button>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

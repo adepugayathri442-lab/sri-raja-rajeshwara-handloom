@@ -36,7 +36,7 @@ interface AdminLoginFormProps {
 
 export function AdminLoginForm({
   redirectTarget = '/admin',
-  customerStoreUrl = process.env.NEXT_PUBLIC_CUSTOMER_URL || 'https://sri-raja-rajeshwara-handloom-8gqw.vercel.app',
+  customerStoreUrl = '/',
 }: AdminLoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();

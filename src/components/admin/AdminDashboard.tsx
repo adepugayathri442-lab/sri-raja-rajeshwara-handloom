@@ -153,8 +153,7 @@ export function AdminDashboard() {
           </Button>
 
           <Button
-            href={process.env.NEXT_PUBLIC_CUSTOMER_URL || 'https://sri-raja-rajeshwara-handloom-8gqw.vercel.app'}
-            isExternal
+            href="/"
             variant="ghost"
             size="md"
             rightIcon={<ExternalLink className="w-3.5 h-3.5" />}
