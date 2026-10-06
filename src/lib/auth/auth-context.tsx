@@ -57,14 +57,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     if (!supabase) return null;
     try {
+      const isDesignatedAdminUid =
+        userId === '6eda0e3c-732e-4c1f-839a-01b019a6a49e' ||
+        userId === '2bd6cdb5-e013-411d-92f4-23e787c27c4c';
+
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
+        // If profile doesn't exist yet, but user is designated admin, self-heal and create profile
+        if (isDesignatedAdminUid) {
+          const adminEmail =
+            userId === '6eda0e3c-732e-4c1f-839a-01b019a6a49e'
+              ? 'adepugayathri442@gmail.com'
+              : 'adepugayathri28@gmail.com';
+
+          const { data: newProfile } = await supabase
+            .from('profiles')
+            .upsert({
+              id: userId,
+              full_name: 'Gayathri Adepu',
+              phone: '',
+              email: adminEmail,
+              customer_type: 'Business',
+              business_name: 'Sri Raja Rajeshwara Handloom',
+              role: 'admin',
+            })
+            .select()
+            .maybeSingle();
+
+          if (newProfile) {
+            return {
+              id: newProfile.id,
+              fullName: newProfile.full_name,
+              phone: newProfile.phone,
+              email: newProfile.email,
+              customerType: newProfile.customer_type as CustomerType,
+              businessName: newProfile.business_name,
+              gstNumber: newProfile.gst_number,
+              role: 'admin',
+              createdAt: newProfile.created_at,
+            };
+          }
+        }
         return null;
+      }
+
+      // Check if user is one of the designated admins and ensure role = 'admin'
+      const isDesignatedAdmin =
+        isDesignatedAdminUid ||
+        data.email?.toLowerCase() === 'adepugayathri442@gmail.com' ||
+        data.email?.toLowerCase() === 'adepugayathri28@gmail.com';
+
+      let role = (data.role as UserRole) || 'customer';
+      if (isDesignatedAdmin && role !== 'admin') {
+        role = 'admin';
+        supabase.from('profiles').update({ role: 'admin' }).eq('id', userId).then();
       }
 
       return {
@@ -75,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         customerType: data.customer_type as CustomerType,
         businessName: data.business_name,
         gstNumber: data.gst_number,
-        role: (data.role as UserRole) || 'customer',
+        role,
         createdAt: data.created_at,
       };
     } catch {
@@ -274,8 +325,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
   };
 
-  const role = profile?.role ?? null;
-  const isAdmin = role === 'admin';
+  const isDesignatedAdmin =
+    user?.id === '6eda0e3c-732e-4c1f-839a-01b019a6a49e' ||
+    user?.id === '2bd6cdb5-e013-411d-92f4-23e787c27c4c' ||
+    user?.email?.toLowerCase() === 'adepugayathri442@gmail.com' ||
+    user?.email?.toLowerCase() === 'adepugayathri28@gmail.com';
+
+  const role = (profile?.role ?? (isDesignatedAdmin ? 'admin' : null)) as UserRole | null;
+  const isAdmin = role === 'admin' || isDesignatedAdmin;
   const isAuthenticated = Boolean(user);
 
   const value: AuthContextValue = {

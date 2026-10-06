@@ -40,7 +40,7 @@ export function AdminLoginForm({
 }: AdminLoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, signInWithGoogle, logout, isConfigured, isAuthenticated, isAdmin } = useAuth();
+  const { login, signInWithGoogle, logout, isConfigured, isAuthenticated, isAdmin, user } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,12 +50,20 @@ export function AdminLoginForm({
   const [accessDeniedError, setAccessDeniedError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const isDesignatedAdmin =
+    user?.id === '6eda0e3c-732e-4c1f-839a-01b019a6a49e' ||
+    user?.id === '2bd6cdb5-e013-411d-92f4-23e787c27c4c' ||
+    user?.email?.toLowerCase() === 'adepugayathri442@gmail.com' ||
+    user?.email?.toLowerCase() === 'adepugayathri28@gmail.com';
+
+  const effectiveIsAdmin = isAdmin || isDesignatedAdmin;
+
   // If already authenticated with admin role, automatically redirect to dashboard
   useEffect(() => {
-    if (isAuthenticated && isAdmin) {
+    if (isAuthenticated && effectiveIsAdmin) {
       router.replace(redirectTarget);
     }
-  }, [isAuthenticated, isAdmin, router, redirectTarget]);
+  }, [isAuthenticated, effectiveIsAdmin, router, redirectTarget]);
 
   // Derive error messages during render without cascading setState effects
   const errorParam = searchParams.get('error');
@@ -89,8 +97,13 @@ export function AdminLoginForm({
         return;
       }
 
+      const userIsAdmin =
+        result.role === 'admin' ||
+        cleanEmail === 'adepugayathri442@gmail.com' ||
+        cleanEmail === 'adepugayathri28@gmail.com';
+
       // Check role strictly: only role === 'admin' is permitted
-      if (result.role !== 'admin') {
+      if (!userIsAdmin) {
         // Log out immediately so the customer session is not held on the admin portal
         await logout();
         setAccessDeniedError(

@@ -8,16 +8,20 @@
  * - Production Base URL: https://sri-raja-rajeshwara-handloom.vercel.app
  * - Callback URL: https://sri-raja-rajeshwara-handloom.vercel.app/auth/callback
  * 
+ * Authorized Admin Accounts:
+ * 1. adepugayathri442@gmail.com (UID: 6eda0e3c-732e-4c1f-839a-01b019a6a49e)
+ * 2. adepugayathri28@gmail.com (UID: 2bd6cdb5-e013-411d-92f4-23e787c27c4c)
+ * 
  * Flow & Security:
  * 1. Exchanges OAuth code for session cookies.
- * 2. If login initiated from /admin (or requested destination starts with /admin):
- *    - Query profiles to check role.
- *    - If role === 'admin': Redirect to /admin (Admin Dashboard) with session cookies preserved.
- *    - If role !== 'admin': Sign out session immediately and redirect to /admin/login?error=access_denied_customer.
- * 3. If login initiated from customer storefront:
- *    - Upsert customer profile if needed.
- *    - Redirect to safe customer destination (e.g. /account, /checkout).
- * 4. Preserves all session cookies on all redirect responses.
+ * 2. Checks user against authorized admin credentials and database profiles.
+ * 3. If user is an authorized admin:
+ *    - Ensures their profile exists in public.profiles with role = 'admin'.
+ *    - Redirects to /admin with all session cookies preserved.
+ * 4. If login originated from /admin but user is NOT an admin:
+ *    - Signs out immediately and redirects to /admin/login?error=access_denied_customer.
+ * 5. If login originated from customer storefront:
+ *    - Standard customer onboarding/session flow.
  */
 
 import { NextResponse, type NextRequest } from 'next/server';
@@ -27,6 +31,22 @@ import {
   getAppBaseUrl,
   AUTH_NEXT_COOKIE_NAME,
 } from '@/lib/auth/auth-urls';
+
+const ADMIN_UIDS = new Set([
+  '6eda0e3c-732e-4c1f-839a-01b019a6a49e', // adepugayathri442@gmail.com
+  '2bd6cdb5-e013-411d-92f4-23e787c27c4c', // adepugayathri28@gmail.com
+]);
+
+const ADMIN_EMAILS = new Set([
+  'adepugayathri442@gmail.com',
+  'adepugayathri28@gmail.com',
+]);
+
+function isAuthorizedAdmin(userId: string, email?: string | null): boolean {
+  if (ADMIN_UIDS.has(userId)) return true;
+  if (email && ADMIN_EMAILS.has(email.toLowerCase().trim())) return true;
+  return false;
+}
 
 function createRedirectWithCookies(
   targetUrl: URL | string,
@@ -100,7 +120,7 @@ export async function GET(request: NextRequest) {
       return errRes;
     }
 
-    // Default redirect response that will accumulate session cookies via setAll
+    // Default redirect response that accumulates session cookies via setAll
     const redirectTargetUrl = new URL(safeNext, baseUrl);
     const cookieCollectorResponse = NextResponse.redirect(redirectTargetUrl);
 
@@ -138,12 +158,14 @@ export async function GET(request: NextRequest) {
             (user.user_metadata?.name as string) ||
             '';
 
+          const userIsAdmin = isAuthorizedAdmin(user.id, user.email);
+
           // Query existing profile to verify authorization
           let existingProfile = null;
 
           const { data: profileById } = await supabase
             .from('profiles')
-            .select('id, full_name, role')
+            .select('id, full_name, email, role')
             .eq('id', user.id)
             .maybeSingle();
 
@@ -152,7 +174,7 @@ export async function GET(request: NextRequest) {
           if (!existingProfile && user.email) {
             const { data: profileByEmail } = await supabase
               .from('profiles')
-              .select('id, full_name, role')
+              .select('id, full_name, email, role')
               .eq('email', user.email.toLowerCase())
               .maybeSingle();
 
@@ -162,31 +184,62 @@ export async function GET(request: NextRequest) {
           }
 
           // ------------------------------------------------------------------
-          // CASE 1: ADMIN FLOW (Initiated from /admin or safeNext is /admin)
+          // ADMIN ACCOUNT HANDLING (Designated Admin or profiles.role === 'admin')
           // ------------------------------------------------------------------
-          if (isAdminFlow) {
-            // Strictly check admin role. Customers or unverified users CANNOT access admin.
-            if (!existingProfile || existingProfile.role !== 'admin') {
-              // Sign out from admin context so customer session is not active on admin portal
-              await supabase.auth.signOut();
-              const accessDeniedUrl = new URL(
-                '/admin/login?error=access_denied_customer',
-                baseUrl
-              );
-              return createRedirectWithCookies(accessDeniedUrl, cookieCollectorResponse);
+          if (userIsAdmin || existingProfile?.role === 'admin') {
+            // Ensure profile exists with role = 'admin'
+            if (!existingProfile) {
+              const { data: createdProfile } = await supabase
+                .from('profiles')
+                .upsert({
+                  id: user.id,
+                  full_name: googleFullName || 'Gayathri Adepu',
+                  email: user.email || 'adepugayathri442@gmail.com',
+                  phone: (user.user_metadata?.phone as string) || '',
+                  customer_type: 'Business',
+                  business_name: 'Sri Raja Rajeshwara Handloom',
+                  role: 'admin',
+                })
+                .select('id, full_name, email, role')
+                .maybeSingle();
+
+              if (createdProfile) {
+                existingProfile = createdProfile;
+              }
+            } else if (existingProfile.role !== 'admin') {
+              await supabase
+                .from('profiles')
+                .update({ role: 'admin', updated_at: new Date().toISOString() })
+                .eq('id', user.id);
+
+              existingProfile.role = 'admin';
             }
 
-            // Verified administrator: redirect to /admin with full session cookies
+            // Confirmed administrator: redirect directly to /admin dashboard
             const adminDestination = safeNext.startsWith('/admin') ? safeNext : '/admin';
             const adminTargetUrl = new URL(adminDestination, baseUrl);
             return createRedirectWithCookies(adminTargetUrl, cookieCollectorResponse);
           }
 
           // ------------------------------------------------------------------
-          // CASE 2: CUSTOMER FLOW
+          // NON-ADMIN ATTEMPTING ADMIN ACCESS
+          // ------------------------------------------------------------------
+          if (isAdminFlow) {
+            // Non-admin account clicked "Continue with Google" on /admin/login:
+            // Sign out session immediately to prevent access to admin portal
+            await supabase.auth.signOut();
+            const accessDeniedUrl = new URL(
+              '/admin/login?error=access_denied_customer',
+              baseUrl
+            );
+            return createRedirectWithCookies(accessDeniedUrl, cookieCollectorResponse);
+          }
+
+          // ------------------------------------------------------------------
+          // CUSTOMER STOREFRONT FLOW
           // ------------------------------------------------------------------
           if (!existingProfile) {
-            // New Google user on customer site: create customer profile record
+            // New customer registration via Google on storefront
             await supabase.from('profiles').insert({
               id: user.id,
               full_name: googleFullName,
@@ -197,19 +250,12 @@ export async function GET(request: NextRequest) {
               role: 'customer',
             });
           } else {
-            // Backfill name if missing
             if (!existingProfile.full_name && googleFullName) {
               await supabase
                 .from('profiles')
                 .update({ full_name: googleFullName })
                 .eq('id', user.id);
             }
-          }
-
-          // If an admin signed in through customer portal without specific destination, send to /admin
-          if (existingProfile?.role === 'admin' && safeNext === '/account') {
-            const adminTargetUrl = new URL('/admin', baseUrl);
-            return createRedirectWithCookies(adminTargetUrl, cookieCollectorResponse);
           }
 
           const customerTargetUrl = new URL(safeNext, baseUrl);

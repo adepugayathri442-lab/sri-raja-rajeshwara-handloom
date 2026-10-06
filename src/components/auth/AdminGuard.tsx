@@ -31,12 +31,20 @@ export function AdminGuard({ children }: AdminGuardProps) {
   const { isAuthenticated, isAdmin, isLoading, profile, user, logout } = useAuth();
   const isLoginPage = pathname === '/admin/login';
 
+  const isDesignatedAdmin =
+    user?.id === '6eda0e3c-732e-4c1f-839a-01b019a6a49e' ||
+    user?.id === '2bd6cdb5-e013-411d-92f4-23e787c27c4c' ||
+    user?.email?.toLowerCase() === 'adepugayathri442@gmail.com' ||
+    user?.email?.toLowerCase() === 'adepugayathri28@gmail.com';
+
+  const effectiveIsAdmin = isAdmin || isDesignatedAdmin;
+
   // If already authenticated with admin role and visiting /admin/login, send to dashboard
   useEffect(() => {
-    if (isLoginPage && !isLoading && isAuthenticated && isAdmin) {
+    if (isLoginPage && !isLoading && isAuthenticated && effectiveIsAdmin) {
       router.replace('/admin');
     }
-  }, [isLoginPage, isLoading, isAuthenticated, isAdmin, router]);
+  }, [isLoginPage, isLoading, isAuthenticated, effectiveIsAdmin, router]);
 
   // If unauthenticated and trying to access protected admin pages, send to login
   useEffect(() => {
@@ -65,7 +73,7 @@ export function AdminGuard({ children }: AdminGuardProps) {
 
   // 2. Login page handling
   if (isLoginPage) {
-    if (isAuthenticated && isAdmin) {
+    if (isAuthenticated && effectiveIsAdmin) {
       return (
         <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-8">
           <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-4" />
@@ -87,7 +95,7 @@ export function AdminGuard({ children }: AdminGuardProps) {
   }
 
   // 4. Authenticated, but normal customer role: strictly blocked
-  if (!isAdmin) {
+  if (!effectiveIsAdmin) {
     return (
       <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-6">
         <div className="max-w-md w-full bg-white rounded-2xl border border-red-200 shadow-md p-6 sm:p-8 text-center space-y-4">
