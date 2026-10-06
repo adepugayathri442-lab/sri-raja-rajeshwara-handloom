@@ -702,3 +702,37 @@ export async function validateCartWithLiveCatalog(
     return result;
   }
 }
+
+/**
+ * Safely update stock quantity for a product directly from warehouse stock view
+ */
+export async function updateProductStock(
+  productId: string,
+  newStockQuantity: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createClient();
+    if (!supabase) return { success: false, error: 'Database connection unavailable' };
+
+    if (newStockQuantity < 0 || !Number.isInteger(newStockQuantity)) {
+      return { success: false, error: 'Stock quantity must be a non-negative integer' };
+    }
+
+    const { error } = await supabase
+      .from('products')
+      .update({
+        stock_quantity: newStockQuantity,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', productId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to update stock quantity';
+    return { success: false, error: message };
+  }
+}

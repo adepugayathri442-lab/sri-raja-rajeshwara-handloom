@@ -13,7 +13,7 @@
  * - Zero customer shopping navigation
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ShieldCheck,
@@ -40,7 +40,7 @@ export function AdminLoginForm({
 }: AdminLoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, signInWithGoogle, logout, isConfigured } = useAuth();
+  const { login, signInWithGoogle, logout, isConfigured, isAuthenticated, isAdmin } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,6 +49,13 @@ export function AdminLoginForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [accessDeniedError, setAccessDeniedError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // If already authenticated with admin role, automatically redirect to dashboard
+  useEffect(() => {
+    if (isAuthenticated && isAdmin) {
+      router.replace(redirectTarget);
+    }
+  }, [isAuthenticated, isAdmin, router, redirectTarget]);
 
   // Derive error messages during render without cascading setState effects
   const errorParam = searchParams.get('error');

@@ -24,6 +24,10 @@ import {
   CheckCircle2,
   XCircle,
   Package,
+  Plus,
+  Minus,
+  Loader2,
+  Check,
 } from 'lucide-react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
@@ -31,11 +35,72 @@ import {
   getAdminStockList,
   type AdminStockItem,
 } from '@/lib/supabase/admin-operations';
+import { updateProductStock } from '@/lib/supabase/admin-catalog';
 
 export function AdminStockView() {
   const [items, setItems] = useState<AdminStockItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Quick Stock Adjustment Modal State
+  const [editingItem, setEditingItem] = useState<AdminStockItem | null>(null);
+  const [newQuantity, setNewQuantity] = useState<string>('0');
+  const [isSavingStock, setIsSavingStock] = useState(false);
+  const [stockSaveError, setStockSaveError] = useState<string | null>(null);
+  const [stockSuccessMsg, setStockSuccessMsg] = useState<string | null>(null);
+
+  const handleOpenQuickStock = (item: AdminStockItem) => {
+    setEditingItem(item);
+    setNewQuantity(String(item.stockQuantity));
+    setStockSaveError(null);
+  };
+
+  const handleAdjustBy = (delta: number) => {
+    const current = parseInt(newQuantity, 10) || 0;
+    const nextVal = Math.max(0, current + delta);
+    setNewQuantity(String(nextVal));
+  };
+
+  const handleSaveStock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    const parsed = parseInt(newQuantity, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      setStockSaveError('Please enter a valid non-negative piece quantity.');
+      return;
+    }
+
+    setIsSavingStock(true);
+    setStockSaveError(null);
+
+    const res = await updateProductStock(editingItem.id, parsed);
+    setIsSavingStock(false);
+
+    if (res.success) {
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === editingItem.id
+            ? {
+                ...i,
+                stockQuantity: parsed,
+                stockStatus:
+                  parsed === 0
+                    ? 'Out of Stock'
+                    : parsed <= 10
+                    ? 'Low Stock'
+                    : 'In Stock',
+              }
+            : i
+        )
+      );
+      setStockSuccessMsg(`Inventory updated: ${editingItem.name} now has ${parsed} pcs.`);
+      setEditingItem(null);
+      setTimeout(() => setStockSuccessMsg(null), 3500);
+    } else {
+      setStockSaveError(res.error || 'Failed to update stock in database.');
+    }
+  };
 
   // Filters
   const [search, setSearch] = useState('');
@@ -343,13 +408,23 @@ export function AdminStockView() {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        <Link
-                          href={`/admin/products/${i.id}/edit`}
-                          className="px-3 py-1.5 bg-primary text-white hover:bg-primary-hover rounded text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                          <span>Edit Stock</span>
-                        </Link>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenQuickStock(i)}
+                            className="px-2.5 py-1.5 bg-accent hover:bg-accent-hover text-charcoal rounded text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+                          >
+                            <Boxes className="w-3.5 h-3.5" />
+                            <span>Quick Adjust</span>
+                          </button>
+                          <Link
+                            href={`/admin/products/${i.id}/edit`}
+                            title="Full Product Editor"
+                            className="px-2 py-1.5 bg-surface-subtle hover:bg-surface-border text-muted hover:text-charcoal border border-border rounded text-xs font-medium inline-flex items-center transition-colors"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -403,17 +478,177 @@ export function AdminStockView() {
                     <span className="text-muted block text-[10px]">Available Inventory:</span>
                     <span className="font-bold text-lg text-primary">{i.stockQuantity} pcs</span>
                   </div>
-                  <Link
-                    href={`/admin/products/${i.id}/edit`}
-                    className="px-3 py-1.5 bg-primary text-white hover:bg-primary-hover rounded text-xs font-semibold inline-flex items-center gap-1.5"
-                  >
-                    <Edit className="w-3.5 h-3.5" />
-                    <span>Edit Stock</span>
-                  </Link>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenQuickStock(i)}
+                      className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-charcoal rounded text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                    >
+                      <Boxes className="w-3.5 h-3.5" />
+                      <span>Adjust</span>
+                    </button>
+                    <Link
+                      href={`/admin/products/${i.id}/edit`}
+                      className="px-2.5 py-1.5 bg-surface-subtle border border-border rounded text-xs text-muted"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Quick Stock Adjustment Modal */}
+      {editingItem && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-2xs flex items-center justify-center p-4"
+          onClick={() => setEditingItem(null)}
+        >
+          <div
+            className="w-full max-w-md bg-surface rounded-2xl border border-border shadow-xl p-6 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                  <Boxes className="w-4 h-4 text-accent" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-primary">
+                    Update Warehouse Stock
+                  </h3>
+                  <p className="text-[11px] text-muted font-mono">
+                    SKU: {editingItem.productCode}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingItem(null)}
+                className="p-1 text-muted hover:text-charcoal rounded-md hover:bg-surface-subtle cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Product Summary */}
+            <div className="p-3.5 bg-cream/70 rounded-xl border border-accent/20 flex items-center justify-between text-xs">
+              <div>
+                <span className="font-semibold text-charcoal block">{editingItem.name}</span>
+                <span className="text-[11px] text-muted">{editingItem.categoryName}</span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-muted block uppercase">Current Stock</span>
+                <span className="font-bold text-base text-primary font-mono">
+                  {editingItem.stockQuantity} pcs
+                </span>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSaveStock} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-charcoal mb-1" htmlFor="quick-stock-input">
+                  New Available Quantity (Pieces)
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustBy(-10)}
+                    className="p-2.5 bg-surface-subtle hover:bg-surface-border text-charcoal border border-border rounded-lg text-xs font-bold cursor-pointer"
+                    title="Subtract 10 pcs"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <input
+                    id="quick-stock-input"
+                    type="number"
+                    min="0"
+                    step="1"
+                    required
+                    value={newQuantity}
+                    onChange={(e) => setNewQuantity(e.target.value)}
+                    className="flex-1 text-center font-mono font-bold text-lg py-2 bg-surface-subtle border border-border rounded-lg text-charcoal focus:border-accent focus:bg-surface outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAdjustBy(10)}
+                    className="p-2.5 bg-surface-subtle hover:bg-surface-border text-charcoal border border-border rounded-lg text-xs font-bold cursor-pointer"
+                    title="Add 10 pcs"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick Jump Buttons */}
+              <div className="flex items-center gap-1.5 pt-1">
+                <span className="text-[10px] text-muted mr-1">Quick:</span>
+                {[
+                  { label: '+25', delta: 25 },
+                  { label: '+50', delta: 50 },
+                  { label: '+100', delta: 100 },
+                  { label: '+500', delta: 500 },
+                ].map((btn) => (
+                  <button
+                    key={btn.label}
+                    type="button"
+                    onClick={() => handleAdjustBy(btn.delta)}
+                    className="px-2.5 py-1 bg-surface-subtle hover:bg-surface-border border border-border text-[11px] font-semibold text-charcoal rounded cursor-pointer"
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
+
+              {stockSaveError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-700 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{stockSaveError}</span>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditingItem(null)}
+                  disabled={isSavingStock}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  disabled={isSavingStock}
+                  leftIcon={
+                    isSavingStock ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5" />
+                    )
+                  }
+                >
+                  {isSavingStock ? 'Saving Pieces...' : 'Save Stock Quantity'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Success Notification */}
+      {stockSuccessMsg && (
+        <div className="fixed bottom-6 right-6 z-50 p-4 bg-emerald-900 text-white rounded-xl shadow-lg border border-emerald-700 flex items-center gap-3 animate-fade-in text-xs font-medium">
+          <CheckCircle2 className="w-4 h-4 text-accent shrink-0" />
+          <span>{stockSuccessMsg}</span>
         </div>
       )}
     </div>

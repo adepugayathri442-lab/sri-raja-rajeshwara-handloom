@@ -33,14 +33,17 @@ import {
   Truck,
   BarChart3,
   Settings,
+  MessageCircle,
 } from 'lucide-react';
 import { Card } from '@/components/common/Card';
 import { Badge } from '@/components/common/Badge';
 import { Button } from '@/components/common/Button';
 import {
   getAdminOperationsStats,
+  getAdminEnquiries,
   type AdminOperationsStats,
 } from '@/lib/supabase/admin-operations';
+import type { WholesaleEnquiryRow } from '@/types';
 
 export function AdminDashboard() {
   const [stats, setStats] = useState<AdminOperationsStats>({
@@ -64,13 +67,18 @@ export function AdminDashboard() {
     totalSales: 0,
     recentOrders: [],
   });
+  const [recentEnquiries, setRecentEnquiries] = useState<WholesaleEnquiryRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshStats = async () => {
     setIsLoading(true);
     try {
-      const res = await getAdminOperationsStats();
+      const [res, enq] = await Promise.all([
+        getAdminOperationsStats(),
+        getAdminEnquiries({ limit: 5 }),
+      ]);
       setStats(res);
+      setRecentEnquiries(enq);
     } catch (err) {
       console.error('Failed to load dashboard stats:', err);
     } finally {
@@ -80,9 +88,13 @@ export function AdminDashboard() {
 
   useEffect(() => {
     let isMounted = true;
-    getAdminOperationsStats().then((res) => {
+    Promise.all([
+      getAdminOperationsStats(),
+      getAdminEnquiries({ limit: 5 }),
+    ]).then(([res, enq]) => {
       if (isMounted) {
         setStats(res);
+        setRecentEnquiries(enq);
         setIsLoading(false);
       }
     });
@@ -104,7 +116,7 @@ export function AdminDashboard() {
             <span className="text-xs text-muted">Real-Time Wholesale Operations</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-primary">
-            Storefront Command Center
+            Merchant Operations Dashboard
           </h1>
           <p className="text-xs sm:text-sm text-muted mt-1">
             Sri Raja Rajeshwara Handloom • Wholesale Cloth Merchant • Pusala Galli, Nizamabad
@@ -464,6 +476,125 @@ export function AdminDashboard() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Recent Wholesale Enquiries Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-serif font-bold text-primary flex items-center gap-2">
+              <MessageSquareQuote className="w-4 h-4 text-accent" />
+              <span>Recent Wholesale Enquiries</span>
+            </h2>
+            <p className="text-xs text-muted mt-0.5">
+              Inbound trade leads, shop quotation requests, and fabric enquiries from across India.
+            </p>
+          </div>
+
+          <Button href="/admin/wholesale-enquiries" variant="outline" size="sm">
+            View All Enquiries
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <div className="bg-surface border border-border rounded-xl p-8 space-y-3 animate-pulse">
+            <div className="h-5 bg-surface-subtle rounded w-1/4" />
+            <div className="h-12 bg-surface-subtle rounded" />
+            <div className="h-12 bg-surface-subtle rounded" />
+          </div>
+        ) : recentEnquiries.length === 0 ? (
+          <Card variant="default" className="p-8 text-center border-border bg-surface">
+            <div className="w-10 h-10 rounded-full bg-surface-subtle text-muted flex items-center justify-center mx-auto mb-2.5">
+              <MessageSquareQuote className="w-5 h-5 text-muted" />
+            </div>
+            <h3 className="text-sm font-serif font-bold text-primary">No Enquiries Yet</h3>
+            <p className="text-xs text-muted mt-1 max-w-sm mx-auto">
+              When retail shop owners and cloth merchants send wholesale enquiry forms, they will appear here with one-click WhatsApp responses.
+            </p>
+          </Card>
+        ) : (
+          <div className="bg-surface border border-border rounded-xl shadow-2xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-surface-subtle border-b border-border text-muted font-semibold uppercase tracking-wider text-[10px]">
+                    <th className="py-3 px-4">Merchant Name</th>
+                    <th className="py-3 px-4">Business / Store</th>
+                    <th className="py-3 px-4">Contact</th>
+                    <th className="py-3 px-4">Location</th>
+                    <th className="py-3 px-4">Requirement / Message</th>
+                    <th className="py-3 px-4">Date</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">WhatsApp</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {recentEnquiries.map((enq) => {
+                    const cleanPhone = enq.phone.replace(/[^0-9]/g, '');
+                    const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                    const waLink = `https://wa.me/${phoneWithCountry}?text=${encodeURIComponent(
+                      `Namaste ${enq.name}, thank you for contacting Sri Raja Rajeshwara Handloom regarding your wholesale enquiry for ${enq.business_name || 'your store'}. How can we assist you with our textile catalogue?`
+                    )}`;
+
+                    return (
+                      <tr key={enq.id} className="hover:bg-cream/40 transition-colors">
+                        <td className="py-3 px-4 font-semibold text-charcoal">
+                          {enq.name}
+                        </td>
+                        <td className="py-3 px-4 text-primary font-medium">
+                          {enq.business_name || '—'}
+                        </td>
+                        <td className="py-3 px-4 font-mono text-muted">
+                          {enq.phone}
+                        </td>
+                        <td className="py-3 px-4 text-muted whitespace-nowrap">
+                          {enq.city || '—'}
+                        </td>
+                        <td className="py-3 px-4 text-muted max-w-xs truncate" title={enq.message || enq.products_interested}>
+                          {enq.message || enq.products_interested}
+                        </td>
+                        <td className="py-3 px-4 text-muted whitespace-nowrap">
+                          {new Date(enq.created_at).toLocaleDateString('en-IN', {
+                            day: 'numeric',
+                            month: 'short',
+                          })}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${
+                              enq.status === 'New'
+                                ? 'bg-amber-100 text-amber-800'
+                                : enq.status === 'Contacted'
+                                ? 'bg-blue-100 text-blue-800'
+                                : enq.status === 'Quoted'
+                                ? 'bg-purple-100 text-purple-800'
+                                : enq.status === 'Converted'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            {enq.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <a
+                            href={waLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded text-[11px] font-semibold transition-colors cursor-pointer"
+                          >
+                            <MessageCircle className="w-3 h-3" />
+                            <span>Reply</span>
+                          </a>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

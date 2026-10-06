@@ -233,7 +233,7 @@ export function AdminSidebar() {
             <span>Back to Wholesale Store</span>
           </a>
           <div className="text-[10px] text-white/40 pt-1">
-            Sri Raja Rajeshwara Handloom • Phase 5
+            Sri Raja Rajeshwara Handloom • Wholesale Admin
           </div>
         </div>
       </aside>

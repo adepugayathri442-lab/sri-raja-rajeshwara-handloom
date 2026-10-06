@@ -1142,6 +1142,7 @@ export async function getAdminStockList(options: {
 export async function getAdminEnquiries(options: {
   search?: string;
   status?: string;
+  limit?: number;
 } = {}): Promise<WholesaleEnquiryRow[]> {
   try {
     const supabase = createClient();
@@ -1154,6 +1155,10 @@ export async function getAdminEnquiries(options: {
 
     if (options.status && options.status !== 'all') {
       query = query.eq('status', options.status);
+    }
+
+    if (options.limit && options.limit > 0) {
+      query = query.limit(options.limit);
     }
 
     const { data, error } = await query;
