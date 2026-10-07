@@ -59,10 +59,16 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
     (img): img is string => typeof img === 'string' && img.trim() !== '' && img !== 'null'
   );
 
-  const isPriceVisible = product.priceVisible !== false;
-  const isOutOfStock = product.stockQuantity <= 0;
-  const isLowStock = product.stockQuantity > 0 && product.stockQuantity <= 10;
-  const currentTotal = product.pricePerPiece * quantity;
+  const rawPrice = product.pricePerPiece !== null && product.pricePerPiece !== undefined && !isNaN(Number(product.pricePerPiece))
+    ? Number(product.pricePerPiece)
+    : null;
+  const hasValidPrice = rawPrice !== null && rawPrice > 0;
+  const isPriceVisible = Boolean(hasValidPrice && product.priceVisible !== false);
+
+  const stockStatus = product.stockStatus || (product.stockQuantity <= 0 ? 'out_of_stock' : product.stockQuantity <= 10 ? 'limited' : 'full');
+  const isOutOfStock = stockStatus === 'out_of_stock' || product.stockQuantity <= 0;
+  const isLowStock = stockStatus === 'limited';
+  const currentTotal = hasValidPrice ? (rawPrice || 0) * quantity : 0;
 
   const handleQuantityChange = (newQty: number) => {
     if (newQty < 1) return;
@@ -74,7 +80,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
   };
 
   const handleAddToCart = () => {
-    if (isOutOfStock || !isPriceVisible) return;
+    if (isOutOfStock || !isPriceVisible || product.pricePerPiece === null) return;
     addItem({
       productId: product.id,
       productCode: product.productCode,
@@ -165,12 +171,12 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
               ) : isLowStock ? (
                 <span className="px-2.5 py-1 bg-amber-50 text-amber-800 font-semibold text-xs rounded-md border border-amber-200 shadow-xs flex items-center gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5" />
-                  Low Stock ({product.stockQuantity} pcs left)
+                  Limited Stock
                 </span>
               ) : (
                 <span className="px-2.5 py-1 bg-emerald-50 text-emerald-800 font-semibold text-xs rounded-md border border-emerald-200 shadow-xs flex items-center gap-1.5">
                   <Check className="w-3.5 h-3.5" />
-                  In Stock ({product.stockQuantity} available)
+                  Full Stock
                 </span>
               )}
             </div>
@@ -233,7 +239,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
           </div>
 
           {/* Wholesale Fixed Piece Pricing Block */}
-          {isPriceVisible ? (
+          {isPriceVisible && product.pricePerPiece !== null ? (
             <div className="p-5 bg-surface rounded-xl border border-border shadow-xs space-y-3">
               <div className="flex items-baseline justify-between">
                 <div>
@@ -341,10 +347,12 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
               </div>
 
               <div className="text-xs text-muted">
-                {product.stockQuantity > 0 ? (
-                  <span>Available in stock: <strong>{product.stockQuantity} pcs</strong></span>
+                {isOutOfStock ? (
+                  <span className="text-rose-600 font-semibold">Out of Stock</span>
+                ) : isLowStock ? (
+                  <span className="text-amber-700 font-semibold">Limited Stock Available</span>
                 ) : (
-                  <span className="text-rose-600 font-semibold">Currently out of stock</span>
+                  <span className="text-emerald-700 font-semibold">Full Stock Available</span>
                 )}
               </div>
             </div>

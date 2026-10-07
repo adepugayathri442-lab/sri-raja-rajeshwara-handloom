@@ -32,9 +32,15 @@ export function ProductCard({ product }: ProductCardProps) {
   const [added, setAdded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  const isPriceVisible = product.priceVisible !== false;
-  const isOutOfStock = product.stockQuantity <= 0;
-  const isLowStock = product.stockQuantity > 0 && product.stockQuantity <= 10;
+  const rawPrice = product.pricePerPiece !== null && product.pricePerPiece !== undefined && !isNaN(Number(product.pricePerPiece))
+    ? Number(product.pricePerPiece)
+    : null;
+  const hasValidPrice = rawPrice !== null && rawPrice > 0;
+  const isPriceVisible = Boolean(hasValidPrice && product.priceVisible !== false);
+
+  const stockStatus = product.stockStatus || (product.stockQuantity <= 0 ? 'out_of_stock' : product.stockQuantity <= 10 ? 'limited' : 'full');
+  const isOutOfStock = stockStatus === 'out_of_stock' || product.stockQuantity <= 0;
+  const isLimitedStock = stockStatus === 'limited';
 
   const displayImage = product.imageUrl || (product.images && product.images.length > 0 ? product.images[0] : null);
   const hasValidImage = Boolean(
@@ -47,7 +53,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (isOutOfStock || !isPriceVisible) return;
+    if (isOutOfStock || !isPriceVisible || product.pricePerPiece === null) return;
     
     addItem({
       productId: product.id,
@@ -117,14 +123,14 @@ export function ProductCard({ product }: ProductCardProps) {
                 <AlertCircle className="w-3 h-3" />
                 Out of Stock
               </span>
-            ) : isLowStock ? (
+            ) : isLimitedStock ? (
               <span className="px-2 py-0.5 bg-amber-50 text-amber-800 font-semibold text-[10px] rounded border border-amber-200 shadow-xs">
-                Low Stock ({product.stockQuantity})
+                Limited Stock
               </span>
             ) : (
               <span className="px-2 py-0.5 bg-emerald-50 text-emerald-800 font-semibold text-[10px] rounded border border-emerald-200 shadow-xs flex items-center gap-1">
                 <Check className="w-3 h-3" />
-                In Stock
+                Full Stock
               </span>
             )}
           </div>
@@ -152,7 +158,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
           {/* Wholesale Fixed Piece Rate or Get Price Notice */}
           <div className="mt-4 pt-3 border-t border-border/60 flex items-baseline justify-between">
-            {isPriceVisible ? (
+            {isPriceVisible && product.pricePerPiece !== null ? (
               <div>
                 <span className="text-[10px] text-muted block uppercase tracking-wider font-medium">
                   Wholesale Rate
@@ -168,7 +174,7 @@ export function ProductCard({ product }: ProductCardProps) {
                   Wholesale Rate
                 </span>
                 <div className="text-sm sm:text-base font-bold text-primary">
-                  Price On Enquiry
+                  Price on Enquiry
                 </div>
               </div>
             )}

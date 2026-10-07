@@ -67,10 +67,15 @@ export function ProductDetailScreen() {
     );
   }
 
-  const stock = Number(product.stock_quantity ?? 0);
-  const isOutOfStock = stock <= 0;
-  const isLowStock = stock > 0 && stock <= 20;
-  const isPriceVisible = product.price_visible !== false;
+  const rawPrice = product.price_per_piece !== null && product.price_per_piece !== undefined && !isNaN(Number(product.price_per_piece))
+    ? Number(product.price_per_piece)
+    : null;
+  const hasValidPrice = rawPrice !== null && rawPrice > 0;
+  const isPriceVisible = Boolean(hasValidPrice && product.price_visible !== false);
+
+  const stockStatus = product.stock_status || (Number(product.stock_quantity ?? 0) <= 0 ? 'out_of_stock' : Number(product.stock_quantity ?? 0) <= 10 ? 'limited' : 'full');
+  const isOutOfStock = stockStatus === 'out_of_stock' || Number(product.stock_quantity ?? 0) <= 0;
+  const isLimitedStock = stockStatus === 'limited';
 
   // Build image list
   const images = product.product_images && product.product_images.length > 0
@@ -80,7 +85,7 @@ export function ProductDetailScreen() {
     : [];
 
   const handleAddToCart = () => {
-    if (!isPriceVisible || isOutOfStock) return;
+    if (!isPriceVisible || isOutOfStock || rawPrice === null) return;
     if (!isAuthenticated) {
       navigation.navigate('Login', { returnTo: 'CartTab' });
       return;
@@ -92,7 +97,7 @@ export function ProductDetailScreen() {
         slug: product.slug,
         productCode: product.product_code,
         categoryName: product.category?.name || 'Wholesale Handloom',
-        pricePerPiece: product.price_per_piece,
+        pricePerPiece: rawPrice,
         imageUrl: product.image_url,
         stockQuantity: product.stock_quantity,
       },
@@ -109,13 +114,13 @@ export function ProductDetailScreen() {
   };
 
   const openWhatsApp = () => {
-    const text = isPriceVisible
+    const text = isPriceVisible && rawPrice !== null
       ? encodeURIComponent(
           `*SRI RAJA RAJESHWARA HANDLOOM — Wholesale Product Enquiry*\n\n` +
           `Product: ${product.name}\n` +
           `Code: ${product.product_code}\n` +
           `Category: ${product.category?.name || 'Textile'}\n` +
-          `Fixed Rate: ₹${product.price_per_piece}/pc\n` +
+          `Fixed Rate: ₹${rawPrice}/pc\n` +
           `Quantity Required: ${quantity} pieces\n\n` +
           `Please confirm piece rate availability and dispatch details.`
         )
@@ -165,10 +170,10 @@ export function ProductDetailScreen() {
           <View style={styles.badgeRow}>
             {isOutOfStock ? (
               <Badge label="Out of Stock" variant="danger" size="md" />
-            ) : isLowStock ? (
-              <Badge label={`Low Stock (${stock} pcs left)`} variant="warning" size="md" />
+            ) : isLimitedStock ? (
+              <Badge label="Limited Stock" variant="warning" size="md" />
             ) : (
-              <Badge label={`In Stock (${stock} pcs)`} variant="success" size="md" />
+              <Badge label="Full Stock" variant="success" size="md" />
             )}
           </View>
         </View>
@@ -206,12 +211,12 @@ export function ProductDetailScreen() {
 
           {/* Pricing Highlight */}
           <View style={styles.priceContainer}>
-            {isPriceVisible ? (
+            {isPriceVisible && rawPrice !== null ? (
               <View>
                 <Text style={styles.priceSub}>WHOLESALE FIXED PIECE RATE</Text>
                 <View style={styles.priceRow}>
                   <Text style={styles.priceSymbol}>₹</Text>
-                  <Text style={styles.priceNumber}>{product.price_per_piece}</Text>
+                  <Text style={styles.priceNumber}>{rawPrice}</Text>
                   <Text style={styles.priceUnit}> / piece</Text>
                 </View>
               </View>
@@ -242,15 +247,15 @@ export function ProductDetailScreen() {
               </TouchableOpacity>
               <Text style={styles.quantityValue}>{quantity}</Text>
               <TouchableOpacity
-                onPress={() => setQuantity((q) => Math.min(stock > 0 ? stock : 9999, q + 1))}
+                onPress={() => setQuantity((q) => Math.min(product.stock_quantity > 0 ? product.stock_quantity : 9999, q + 1))}
                 style={styles.stepBtn}
               >
                 <Ionicons name="add" size={18} color={colors.charcoal} />
               </TouchableOpacity>
             </View>
             <Text style={styles.subtotalPreview}>
-              {isPriceVisible
-                ? `Subtotal: ₹${product.price_per_piece * quantity}`
+              {isPriceVisible && rawPrice !== null
+                ? `Subtotal: ₹${rawPrice * quantity}`
                 : `Quantity: ${quantity} pcs`}
             </Text>
           </View>

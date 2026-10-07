@@ -59,15 +59,20 @@ export interface ProductFormProps {
 export function ProductForm({ categories, initialData, isEdit = false }: ProductFormProps) {
   const router = useRouter();
 
+  // Fixed Product ID for session/creation to guarantee image isolation
+  const [productId] = useState<string>(() => initialData?.id || crypto.randomUUID());
+
   // Form Fields State
   const [name, setName] = useState(initialData?.name || '');
   const [productCode, setProductCode] = useState(initialData?.productCode || '');
   const [categoryId, setCategoryId] = useState(initialData?.categoryId || '');
   const [pricePerPiece, setPricePerPiece] = useState<string>(
-    initialData ? String(initialData.pricePerPiece) : ''
+    initialData && initialData.pricePerPiece !== null && initialData.pricePerPiece !== undefined
+      ? String(initialData.pricePerPiece)
+      : ''
   );
-  const [stockQuantity, setStockQuantity] = useState<string>(
-    initialData ? String(initialData.stockQuantity) : '0'
+  const [stockStatus, setStockStatus] = useState<'full' | 'limited' | 'out_of_stock'>(
+    initialData?.stockStatus || (initialData?.stockQuantity !== undefined && initialData.stockQuantity <= 0 ? 'out_of_stock' : 'full')
   );
   const [description, setDescription] = useState(initialData?.description || '');
   const [isActive, setIsActive] = useState<boolean>(initialData?.isActive ?? true);
@@ -109,11 +114,10 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
   // Selected Category Object
   const selectedCategoryObj = categories.find((c) => c.id === categoryId);
 
-  // Derived stock status
-  const numericStock = parseInt(stockQuantity || '0', 10);
-  const numericPrice = parseFloat(pricePerPiece || '0');
-  const isOutOfStock = isNaN(numericStock) || numericStock <= 0;
-  const isLowStock = !isOutOfStock && numericStock <= 10;
+  // Derived price & stock states
+  const trimmedPrice = pricePerPiece.trim();
+  const parsedPrice = trimmedPrice !== '' && !isNaN(Number(trimmedPrice)) ? Number(trimmedPrice) : null;
+  const hasValidPrice = parsedPrice !== null && parsedPrice > 0;
 
   // Primary image
   const primaryImageUrl = images.find((i) => i.isPrimary)?.url || images[0]?.url || null;
@@ -134,7 +138,7 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
       const file = files[i];
       setUploadProgress(`Uploading image ${i + 1} of ${files.length}...`);
 
-      const res = await uploadProductImage(file);
+      const res = await uploadProductImage(file, productId);
       if (res.success && res.url) {
         uploadedUrls.push(res.url);
       } else {
@@ -220,12 +224,8 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
       setFormError('Product Code (SKU) is required. You can click "Auto-Generate SKU" if needed.');
       return;
     }
-    if (isNaN(numericPrice) || numericPrice <= 0) {
-      setFormError('Wholesale Price per Piece must be a valid positive amount (greater than ₹0).');
-      return;
-    }
-    if (isNaN(numericStock) || numericStock < 0 || !Number.isInteger(numericStock)) {
-      setFormError('Stock Quantity must be a valid non-negative whole number (0 or greater).');
+    if (trimmedPrice !== '' && (parsedPrice === null || parsedPrice <= 0)) {
+      setFormError('Wholesale Price per Piece must be a valid positive amount (greater than ₹0). Leave blank if price will be provided on enquiry.');
       return;
     }
 
@@ -242,14 +242,16 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
     setIsSubmitting(true);
 
     const payload: AdminProductInput = {
+      id: productId,
       name: cleanName,
       productCode: cleanCode,
       categoryId,
-      pricePerPiece: numericPrice,
-      stockQuantity: numericStock,
+      pricePerPiece: hasValidPrice ? parsedPrice : null,
+      stockStatus,
+      stockQuantity: stockStatus === 'out_of_stock' ? 0 : (initialData?.stockQuantity && initialData.stockQuantity > 0 ? initialData.stockQuantity : stockStatus === 'limited' ? 10 : 100),
       description: description.trim() || cleanName,
       isActive,
-      priceVisible,
+      priceVisible: hasValidPrice ? priceVisible : false,
       images: images.map((img, idx) => ({
         url: img.url,
         sortOrder: idx,
@@ -433,7 +435,7 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
             <div className="flex items-center justify-between">
               <h2 className="text-base font-serif font-bold text-primary flex items-center gap-2">
                 <Truck className="w-4 h-4 text-accent" />
-                <span>Wholesale Piece Rate & Stock Quantity</span>
+                <span>Wholesale Piece Rate & Stock Status</span>
               </h2>
               <span className="text-[11px] font-semibold text-accent uppercase tracking-wider">
                 100% Wholesale Model
@@ -441,11 +443,13 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Price per Piece */}
+              {/* Price per Piece - OPTIONAL */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-charcoal flex items-center justify-between">
-                  <span>Wholesale Rate per Piece (₹) <span className="text-rose-600">*</span></span>
-                  <span className="text-[11px] text-primary font-bold">Fixed Rate / Piece</span>
+                  <span>Wholesale Rate per Piece (₹)</span>
+                  <span className="text-[11px] text-muted font-normal bg-surface-subtle px-2 py-0.5 rounded border border-border">
+                    Optional
+                  </span>
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted font-serif font-bold text-sm">
@@ -455,8 +459,7 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
                     type="number"
                     step="0.01"
                     min="0.01"
-                    required
-                    placeholder="250"
+                    placeholder="Leave blank for Price on Enquiry"
                     value={pricePerPiece}
                     onChange={(e) => setPricePerPiece(e.target.value)}
                     className="w-full pl-8 pr-16 py-2 text-xs sm:text-sm font-semibold bg-surface-subtle border border-border rounded-lg text-charcoal focus:outline-none focus:border-accent"
@@ -466,42 +469,82 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
                   </span>
                 </div>
                 <p className="text-[11px] text-muted">
-                  Strictly one fixed wholesale piece rate. Do not add retail MRP or tiered discounts.
+                  Leave blank if the wholesale price will be provided on enquiry.
                 </p>
               </div>
 
-              {/* Stock Quantity */}
+              {/* Stock Status Selector */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-charcoal flex items-center justify-between">
-                  <span>Stock Quantity (pieces) <span className="text-rose-600">*</span></span>
+                  <span>Stock Status <span className="text-rose-600">*</span></span>
                   <span>
-                    {isOutOfStock ? (
+                    {stockStatus === 'out_of_stock' ? (
                       <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
                         Out of Stock
                       </span>
-                    ) : isLowStock ? (
+                    ) : stockStatus === 'limited' ? (
                       <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                        Low Stock (≤ 10)
+                        Limited Stock
                       </span>
                     ) : (
                       <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        In Stock ({numericStock} pcs)
+                        Full Stock
                       </span>
                     )}
                   </span>
                 </label>
-                <input
-                  type="number"
-                  step="1"
-                  min="0"
-                  required
-                  placeholder="0"
-                  value={stockQuantity}
-                  onChange={(e) => setStockQuantity(e.target.value)}
-                  className="w-full px-3 py-2 text-xs sm:text-sm bg-surface-subtle border border-border rounded-lg text-charcoal focus:outline-none focus:border-accent"
-                />
+
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setStockStatus('full')}
+                    className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                      stockStatus === 'full'
+                        ? 'bg-emerald-50/70 border-emerald-500 ring-1 ring-emerald-500'
+                        : 'bg-surface-subtle border-border hover:bg-surface'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${stockStatus === 'full' ? 'bg-emerald-600' : 'bg-muted'}`} />
+                      <span className="text-xs font-bold text-charcoal">Full Stock</span>
+                    </div>
+                    <p className="text-[10px] text-muted mt-1 leading-tight">Ready for dispatch</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setStockStatus('limited')}
+                    className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                      stockStatus === 'limited'
+                        ? 'bg-amber-50/70 border-amber-500 ring-1 ring-amber-500'
+                        : 'bg-surface-subtle border-border hover:bg-surface'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${stockStatus === 'limited' ? 'bg-amber-600' : 'bg-muted'}`} />
+                      <span className="text-xs font-bold text-charcoal">Limited Stock</span>
+                    </div>
+                    <p className="text-[10px] text-muted mt-1 leading-tight">Low volume batch</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setStockStatus('out_of_stock')}
+                    className={`p-2.5 rounded-lg border text-left transition-all cursor-pointer ${
+                      stockStatus === 'out_of_stock'
+                        ? 'bg-rose-50/70 border-rose-500 ring-1 ring-rose-500'
+                        : 'bg-surface-subtle border-border hover:bg-surface'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${stockStatus === 'out_of_stock' ? 'bg-rose-600' : 'bg-muted'}`} />
+                      <span className="text-xs font-bold text-charcoal">Out of Stock</span>
+                    </div>
+                    <p className="text-[10px] text-muted mt-1 leading-tight">Pending loom weave</p>
+                  </button>
+                </div>
                 <p className="text-[11px] text-muted">
-                  Integer quantity in warehouse inventory. 0 displays as &ldquo;Out of Stock&rdquo; on the storefront.
+                  Select stock availability for storefront display.
                 </p>
               </div>
             </div>
@@ -510,26 +553,31 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
             <div className="pt-3 border-t border-border/60 space-y-2">
               <div>
                 <label className="text-xs font-semibold text-charcoal block">
-                  Price Display <span className="text-rose-600">*</span>
+                  Price Display
                 </label>
                 <p className="text-[11px] text-muted">
-                  Choose whether the wholesale price should be visible to customers.
+                  {hasValidPrice
+                    ? 'Choose whether the wholesale price should be visible to customers.'
+                    : 'Since no price is entered, price is automatically hidden. Buyers will see "Get Price / Price on Enquiry" with WhatsApp enquiry.'}
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <label
-                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                    priceVisible
-                      ? 'bg-amber-50/50 border-primary ring-1 ring-primary'
-                      : 'bg-surface-subtle border-border hover:bg-surface'
+                  className={`flex items-start gap-3 p-3 rounded-lg border transition-all ${
+                    !hasValidPrice
+                      ? 'opacity-50 cursor-not-allowed bg-surface-subtle border-border'
+                      : priceVisible
+                      ? 'bg-amber-50/50 border-primary ring-1 ring-primary cursor-pointer'
+                      : 'bg-surface-subtle border-border hover:bg-surface cursor-pointer'
                   }`}
                 >
                   <input
                     type="radio"
                     name="priceDisplay"
                     value="show"
-                    checked={priceVisible === true}
+                    disabled={!hasValidPrice}
+                    checked={hasValidPrice && priceVisible === true}
                     onChange={() => setPriceVisible(true)}
                     className="mt-0.5 text-primary focus:ring-accent"
                   />
@@ -542,22 +590,24 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
                 </label>
 
                 <label
-                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                    !priceVisible
-                      ? 'bg-amber-50/50 border-primary ring-1 ring-primary'
-                      : 'bg-surface-subtle border-border hover:bg-surface'
+                  className={`flex items-start gap-3 p-3 rounded-lg border transition-all ${
+                    !hasValidPrice || !priceVisible
+                      ? 'bg-amber-50/50 border-primary ring-1 ring-primary cursor-pointer'
+                      : 'bg-surface-subtle border-border hover:bg-surface cursor-pointer'
                   }`}
                 >
                   <input
                     type="radio"
                     name="priceDisplay"
                     value="hide"
-                    checked={priceVisible === false}
+                    checked={!hasValidPrice || priceVisible === false}
                     onChange={() => setPriceVisible(false)}
                     className="mt-0.5 text-primary focus:ring-accent"
                   />
                   <div className="text-xs">
-                    <span className="font-semibold text-charcoal block">Hide Price</span>
+                    <span className="font-semibold text-charcoal block">
+                      Hide Price {!hasValidPrice && '(Automatic)'}
+                    </span>
                     <span className="text-muted text-[11px] block mt-0.5">
                       Wholesale price is hidden everywhere publicly. Buyers see &ldquo;Get Price&rdquo; WhatsApp enquiry button.
                     </span>
@@ -824,20 +874,21 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
           <div className="max-w-xs mx-auto">
             <ProductCard
               product={{
-                id: initialData?.id || 'preview-temp-id',
+                id: productId,
                 productCode: productCode || 'SRR-SAMPLE',
                 name: name || 'Untitled Wholesale Product',
                 slug: 'preview',
                 categoryId: categoryId || 'cat-id',
                 categoryName: selectedCategoryObj?.name || 'Category',
                 groupName: selectedCategoryObj?.group_name || 'Group',
-                pricePerPiece: numericPrice > 0 ? numericPrice : 250,
-                stockQuantity: !isNaN(numericStock) ? numericStock : 0,
+                pricePerPiece: hasValidPrice ? parsedPrice : null,
+                stockQuantity: stockStatus === 'out_of_stock' ? 0 : 100,
+                stockStatus: stockStatus,
                 description: description || 'Sample wholesale description',
                 imageUrl: primaryImageUrl,
                 images: images.map((i) => i.url),
                 isActive,
-                priceVisible,
+                priceVisible: hasValidPrice && priceVisible !== false,
               }}
             />
           </div>

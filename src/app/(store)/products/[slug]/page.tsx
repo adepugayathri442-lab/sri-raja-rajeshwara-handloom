@@ -24,11 +24,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
+  const hasValidPrice = product.pricePerPiece !== null && product.pricePerPiece !== undefined && product.pricePerPiece > 0 && product.priceVisible !== false;
+  const title = hasValidPrice
+    ? `${product.name} (₹${product.pricePerPiece}/pc) | Sri Raja Rajeshwara Handloom`
+    : `${product.name} | Sri Raja Rajeshwara Handloom`;
+  const description =
+    product.description ||
+    (hasValidPrice
+      ? `Authentic wholesale ${product.name} available at fixed piece rate of ₹${product.pricePerPiece}. Pan-India transport dispatch.`
+      : `Authentic wholesale ${product.name}. Wholesale pricing available on enquiry. Pan-India transport dispatch.`);
+
   return {
-    title: `${product.name} (₹${product.pricePerPiece}/pc) | Sri Raja Rajeshwara Handloom`,
-    description:
-      product.description ||
-      `Authentic wholesale ${product.name} available at fixed piece rate of ₹${product.pricePerPiece}. Pan-India transport dispatch.`,
+    title,
+    description,
   };
 }
 

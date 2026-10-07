@@ -178,8 +178,9 @@ export interface Database {
           name: string;
           slug: string;
           category_id: string;
-          price_per_piece: number;
+          price_per_piece: number | null;
           stock_quantity: number;
+          stock_status: 'full' | 'limited' | 'out_of_stock';
           description: string;
           image_url: string | null;
           is_active: boolean;
@@ -193,8 +194,9 @@ export interface Database {
           name: string;
           slug: string;
           category_id: string;
-          price_per_piece: number;
+          price_per_piece?: number | null;
           stock_quantity?: number;
+          stock_status?: 'full' | 'limited' | 'out_of_stock';
           description: string;
           image_url?: string | null;
           is_active?: boolean;
@@ -208,8 +210,9 @@ export interface Database {
           name?: string;
           slug?: string;
           category_id?: string;
-          price_per_piece?: number;
+          price_per_piece?: number | null;
           stock_quantity?: number;
+          stock_status?: 'full' | 'limited' | 'out_of_stock';
           description?: string;
           image_url?: string | null;
           is_active?: boolean;

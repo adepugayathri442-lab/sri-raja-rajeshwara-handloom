@@ -142,8 +142,9 @@ create table if not exists public.products (
   name text not null,
   slug text not null unique,
   category_id uuid not null references public.categories(id) on delete restrict,
-  price_per_piece numeric(10, 2) not null check (price_per_piece >= 0),
+  price_per_piece numeric(10, 2) check (price_per_piece is null or price_per_piece >= 0),
   stock_quantity integer not null default 0 check (stock_quantity >= 0),
+  stock_status text not null default 'full' check (stock_status in ('full', 'limited', 'out_of_stock')),
   description text not null,
   image_url text,
   is_active boolean not null default true,
@@ -287,6 +288,7 @@ create index if not exists idx_categories_group on public.categories(group_name)
 create index if not exists idx_products_category_id on public.products(category_id);
 create index if not exists idx_products_is_active on public.products(is_active);
 create index if not exists idx_products_price_visible on public.products(price_visible);
+create index if not exists idx_products_stock_status on public.products(stock_status);
 create index if not exists idx_products_slug on public.products(slug);
 create index if not exists idx_products_code on public.products(product_code);
 create index if not exists idx_product_images_product_id on public.product_images(product_id);

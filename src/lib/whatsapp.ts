@@ -54,7 +54,7 @@ export interface ProductEnquiryParams {
   productName?: string;
   productCode: string;
   quantity: number;
-  pricePerPiece: number;
+  pricePerPiece?: number | null;
   priceVisible?: boolean;
   customerName?: string;
   businessName?: string;
@@ -63,15 +63,16 @@ export interface ProductEnquiryParams {
 
 export function getProductEnquiryUrl(params: ProductEnquiryParams): string {
   const productName = params.name || params.productName || 'Handloom Textile Item';
-  const isPriceVisible = params.priceVisible !== false;
-  const lineTotal = params.quantity * params.pricePerPiece;
+  const hasValidPrice = params.pricePerPiece !== null && params.pricePerPiece !== undefined && params.pricePerPiece > 0;
+  const isPriceVisible = params.priceVisible !== false && hasValidPrice;
+  const lineTotal = hasValidPrice ? params.quantity * (params.pricePerPiece || 0) : 0;
 
   const lines = isPriceVisible
     ? [
         `Business: SRI RAJA RAJESHWARA HANDLOOM`,
         `Product: ${productName}`,
         `Product Code: ${params.productCode}`,
-        `Price: ₹${params.pricePerPiece.toLocaleString('en-IN')} / piece`,
+        `Price: ₹${params.pricePerPiece!.toLocaleString('en-IN')} / piece`,
         `Quantity: ${params.quantity}`,
         `Estimated Product Total: ₹${lineTotal.toLocaleString('en-IN')}`,
         ``,

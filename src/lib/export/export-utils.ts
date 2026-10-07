@@ -256,7 +256,7 @@ export interface ProductExportItem {
   name: string;
   productCode: string;
   categoryName?: string;
-  pricePerPiece: number;
+  pricePerPiece: number | null;
   stockQuantity: number;
   isActive: boolean;
   description: string;
@@ -279,7 +279,7 @@ export function exportProductsDataset(products: ProductExportItem[], format: Exp
     p.name,
     p.productCode,
     p.categoryName || '—',
-    p.pricePerPiece,
+    p.pricePerPiece !== null && p.pricePerPiece !== undefined ? p.pricePerPiece : 'Price on Enquiry',
     p.stockQuantity,
     p.isActive ? 'Active' : 'Inactive',
     p.description || '',

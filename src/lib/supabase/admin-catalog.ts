@@ -11,7 +11,7 @@
  */
 
 import { createClient } from './client';
-import type { CategoryRow, ProductRow, ProductImageRow } from '@/types';
+import type { CategoryRow, ProductRow, ProductImageRow, ProductInsert } from '@/types';
 
 export interface AdminProductStats {
   total: number;
@@ -28,8 +28,9 @@ export interface AdminProductListItem {
   categoryId: string;
   categoryName?: string;
   groupName?: string;
-  pricePerPiece: number;
+  pricePerPiece: number | null;
   stockQuantity: number;
+  stockStatus: 'full' | 'limited' | 'out_of_stock';
   description: string;
   imageUrl: string | null;
   images: string[];
@@ -40,11 +41,13 @@ export interface AdminProductListItem {
 }
 
 export interface AdminProductInput {
+  id?: string;
   name: string;
   productCode: string;
   categoryId: string;
-  pricePerPiece: number;
-  stockQuantity: number;
+  pricePerPiece: number | null;
+  stockQuantity?: number;
+  stockStatus: 'full' | 'limited' | 'out_of_stock';
   description: string;
   isActive: boolean;
   priceVisible: boolean;
@@ -228,6 +231,11 @@ export async function getAdminProducts(
         ? row.image_url
         : images[0] || null;
 
+      const rawPrice = row.price_per_piece !== null && row.price_per_piece !== undefined && !isNaN(Number(row.price_per_piece))
+        ? Number(row.price_per_piece)
+        : null;
+      const hasValidPrice = rawPrice !== null && rawPrice > 0;
+
       return {
         id: row.id,
         productCode: row.product_code,
@@ -236,13 +244,15 @@ export async function getAdminProducts(
         categoryId: row.category_id,
         categoryName: row.category?.name,
         groupName: row.category?.group_name,
-        pricePerPiece: Number(row.price_per_piece),
-        stockQuantity: Number(row.stock_quantity),
+        pricePerPiece: hasValidPrice ? rawPrice : null,
+        stockQuantity: Number(row.stock_quantity ?? 0),
+        stockStatus: ((row as { stock_status?: string }).stock_status as 'full' | 'limited' | 'out_of_stock') ||
+          (Number(row.stock_quantity ?? 0) <= 0 ? 'out_of_stock' : 'full'),
         description: row.description,
         imageUrl: primaryImage,
         images,
         isActive: Boolean(row.is_active),
-        priceVisible: row.price_visible !== false,
+        priceVisible: hasValidPrice && row.price_visible !== false,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       };
@@ -298,6 +308,11 @@ export async function getAdminProductById(id: string): Promise<AdminProductListI
       ? row.image_url
       : images[0] || null;
 
+    const rawPrice = row.price_per_piece !== null && row.price_per_piece !== undefined && !isNaN(Number(row.price_per_piece))
+      ? Number(row.price_per_piece)
+      : null;
+    const hasValidPrice = rawPrice !== null && rawPrice > 0;
+
     return {
       id: row.id,
       productCode: row.product_code,
@@ -306,13 +321,15 @@ export async function getAdminProductById(id: string): Promise<AdminProductListI
       categoryId: row.category_id,
       categoryName: row.category?.name,
       groupName: row.category?.group_name,
-      pricePerPiece: Number(row.price_per_piece),
-      stockQuantity: Number(row.stock_quantity),
+      pricePerPiece: hasValidPrice ? rawPrice : null,
+      stockQuantity: Number(row.stock_quantity ?? 0),
+      stockStatus: ((row as { stock_status?: string }).stock_status as 'full' | 'limited' | 'out_of_stock') ||
+        (Number(row.stock_quantity ?? 0) <= 0 ? 'out_of_stock' : 'full'),
       description: row.description,
       imageUrl: primaryImage,
       images,
       isActive: Boolean(row.is_active),
-      priceVisible: row.price_visible !== false,
+      priceVisible: hasValidPrice && row.price_visible !== false,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -352,12 +369,18 @@ export async function createProduct(
     if (!cleanName) return { success: false, error: 'Product name is required' };
     if (!cleanCode) return { success: false, error: 'Product code (SKU) is required' };
     if (!input.categoryId) return { success: false, error: 'Category is required' };
-    if (input.pricePerPiece <= 0 || isNaN(input.pricePerPiece)) {
-      return { success: false, error: 'Wholesale price per piece must be a valid positive amount' };
+    if (input.pricePerPiece !== null && input.pricePerPiece !== undefined) {
+      if (isNaN(input.pricePerPiece) || input.pricePerPiece < 0) {
+        return { success: false, error: 'If entered, wholesale price must be a valid positive amount' };
+      }
     }
-    if (input.stockQuantity < 0 || !Number.isInteger(input.stockQuantity)) {
-      return { success: false, error: 'Stock quantity must be a non-negative integer' };
-    }
+
+    const hasPrice = input.pricePerPiece !== null && input.pricePerPiece !== undefined && input.pricePerPiece > 0;
+    const finalPrice = hasPrice ? input.pricePerPiece : null;
+    const stockStatus = input.stockStatus || 'full';
+    const stockQuantity = typeof input.stockQuantity === 'number' && Number.isInteger(input.stockQuantity)
+      ? input.stockQuantity
+      : (stockStatus === 'out_of_stock' ? 0 : stockStatus === 'limited' ? 10 : 100);
 
     // Check unique product_code
     const { data: existingCode } = await supabase
@@ -376,20 +399,24 @@ export async function createProduct(
     const primaryImg = input.images.find((i) => i.isPrimary)?.url || input.images[0]?.url || null;
 
     // Insert Product
+    const insertPayload: ProductInsert = {
+      ...(input.id ? { id: input.id } : {}),
+      name: cleanName,
+      product_code: cleanCode,
+      slug,
+      category_id: input.categoryId,
+      price_per_piece: finalPrice,
+      stock_quantity: stockQuantity,
+      stock_status: stockStatus,
+      description: input.description.trim() || cleanName,
+      image_url: primaryImg,
+      is_active: input.isActive,
+      price_visible: hasPrice && input.priceVisible !== false,
+    };
+
     const { data: insertedProduct, error: insertError } = await supabase
       .from('products')
-      .insert({
-        name: cleanName,
-        product_code: cleanCode,
-        slug,
-        category_id: input.categoryId,
-        price_per_piece: input.pricePerPiece,
-        stock_quantity: input.stockQuantity,
-        description: input.description.trim() || cleanName,
-        image_url: primaryImg,
-        is_active: input.isActive,
-        price_visible: input.priceVisible !== false,
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
@@ -433,12 +460,18 @@ export async function updateProduct(
     if (!cleanName) return { success: false, error: 'Product name is required' };
     if (!cleanCode) return { success: false, error: 'Product code is required' };
     if (!input.categoryId) return { success: false, error: 'Category is required' };
-    if (input.pricePerPiece <= 0 || isNaN(input.pricePerPiece)) {
-      return { success: false, error: 'Wholesale price per piece must be a valid positive amount' };
+    if (input.pricePerPiece !== null && input.pricePerPiece !== undefined) {
+      if (isNaN(input.pricePerPiece) || input.pricePerPiece < 0) {
+        return { success: false, error: 'If entered, wholesale price must be a valid positive amount' };
+      }
     }
-    if (input.stockQuantity < 0 || !Number.isInteger(input.stockQuantity)) {
-      return { success: false, error: 'Stock quantity must be a non-negative integer' };
-    }
+
+    const hasPrice = input.pricePerPiece !== null && input.pricePerPiece !== undefined && input.pricePerPiece > 0;
+    const finalPrice = hasPrice ? input.pricePerPiece : null;
+    const stockStatus = input.stockStatus || 'full';
+    const stockQuantity = typeof input.stockQuantity === 'number' && Number.isInteger(input.stockQuantity)
+      ? input.stockQuantity
+      : (stockStatus === 'out_of_stock' ? 0 : stockStatus === 'limited' ? 10 : 100);
 
     // Check code uniqueness excluding current product
     const { data: existingCode } = await supabase
@@ -461,12 +494,13 @@ export async function updateProduct(
         name: cleanName,
         product_code: cleanCode,
         category_id: input.categoryId,
-        price_per_piece: input.pricePerPiece,
-        stock_quantity: input.stockQuantity,
+        price_per_piece: finalPrice,
+        stock_quantity: stockQuantity,
+        stock_status: stockStatus,
         description: input.description.trim() || cleanName,
         image_url: primaryImg,
         is_active: input.isActive,
-        price_visible: input.priceVisible !== false,
+        price_visible: hasPrice && input.priceVisible !== false,
       })
       .eq('id', id);
 
@@ -565,7 +599,8 @@ export async function deleteProduct(
  * Upload an image file to Supabase Storage 'product-images' bucket
  */
 export async function uploadProductImage(
-  file: File
+  file: File,
+  productId?: string
 ): Promise<{ success: boolean; url?: string; error?: string }> {
   try {
     const supabase = createClient();
@@ -585,7 +620,8 @@ export async function uploadProductImage(
 
     // Collision-resistant sanitized filename
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `products/${Date.now()}-${sanitizedName}`;
+    const folder = productId ? `products/${productId}` : 'products';
+    const filePath = `${folder}/${Date.now()}-${sanitizedName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('product-images')

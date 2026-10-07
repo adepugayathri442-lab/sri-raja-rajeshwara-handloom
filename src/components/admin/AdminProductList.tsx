@@ -375,8 +375,9 @@ export function AdminProductList({ categories }: AdminProductListProps) {
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {products.map((p) => {
-                    const isOutOfStock = p.stockQuantity <= 0;
-                    const isLowStock = p.stockQuantity > 0 && p.stockQuantity <= 10;
+                    const stockStatus = p.stockStatus || (p.stockQuantity <= 0 ? 'out_of_stock' : p.stockQuantity <= 10 ? 'limited' : 'full');
+                    const isOutOfStock = stockStatus === 'out_of_stock' || p.stockQuantity <= 0;
+                    const isLowStock = stockStatus === 'limited';
 
                     return (
                       <tr key={p.id} className="hover:bg-cream/40 transition-colors">
@@ -418,20 +419,33 @@ export function AdminProductList({ categories }: AdminProductListProps) {
 
                         {/* Wholesale Price */}
                         <td className="py-3 px-4 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-serif font-bold text-primary text-sm">
-                              ₹{p.pricePerPiece.toLocaleString('en-IN')}
-                            </span>
-                            <span className="text-[10px] text-muted">/ pc</span>
-                          </div>
-                          {p.priceVisible === false ? (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 mt-0.5">
-                              Price Hidden
-                            </span>
+                          {p.pricePerPiece !== null && p.pricePerPiece > 0 ? (
+                            <>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-serif font-bold text-primary text-sm">
+                                  ₹{p.pricePerPiece.toLocaleString('en-IN')}
+                                </span>
+                                <span className="text-[10px] text-muted">/ pc</span>
+                              </div>
+                              {p.priceVisible === false ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 mt-0.5">
+                                  Price Hidden
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-emerald-600 block mt-0.5">
+                                  Visible
+                                </span>
+                              )}
+                            </>
                           ) : (
-                            <span className="text-[10px] text-emerald-600 block mt-0.5">
-                              Visible
-                            </span>
+                            <div>
+                              <span className="font-bold text-charcoal text-xs">
+                                Price on Enquiry
+                              </span>
+                              <span className="text-[10px] text-muted block mt-0.5">
+                                No rate entered
+                              </span>
+                            </div>
                           )}
                         </td>
 
@@ -443,13 +457,16 @@ export function AdminProductList({ categories }: AdminProductListProps) {
                             </span>
                           ) : isLowStock ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                              Low Stock ({p.stockQuantity})
+                              Limited Stock
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              {p.stockQuantity} pcs
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              Full Stock
                             </span>
                           )}
+                          <span className="block text-[10px] text-muted mt-0.5">
+                            Internal: {p.stockQuantity} pcs
+                          </span>
                         </td>
 
                         {/* Status Toggle */}
@@ -519,8 +536,9 @@ export function AdminProductList({ categories }: AdminProductListProps) {
           {/* Mobile Card Layout (Visible on small screens) */}
           <div className="md:hidden space-y-3">
             {products.map((p) => {
-              const isOutOfStock = p.stockQuantity <= 0;
-              const isLowStock = p.stockQuantity > 0 && p.stockQuantity <= 10;
+              const stockStatus = p.stockStatus || (p.stockQuantity <= 0 ? 'out_of_stock' : p.stockQuantity <= 10 ? 'limited' : 'full');
+              const isOutOfStock = stockStatus === 'out_of_stock' || p.stockQuantity <= 0;
+              const isLowStock = stockStatus === 'limited';
 
               return (
                 <div
@@ -567,33 +585,49 @@ export function AdminProductList({ categories }: AdminProductListProps) {
 
                       <div className="mt-2 flex items-baseline justify-between">
                         <div>
-                          <div className="flex items-baseline gap-1">
-                            <span className="font-serif font-bold text-primary text-base">
-                              ₹{p.pricePerPiece.toLocaleString('en-IN')}
-                            </span>
-                            <span className="text-[10px] text-muted"> / piece</span>
-                          </div>
-                          {p.priceVisible === false && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 mt-0.5">
-                              Price Hidden
-                            </span>
+                          {p.pricePerPiece !== null && p.pricePerPiece > 0 ? (
+                            <>
+                              <div className="flex items-baseline gap-1">
+                                <span className="font-serif font-bold text-primary text-base">
+                                  ₹{p.pricePerPiece.toLocaleString('en-IN')}
+                                </span>
+                                <span className="text-[10px] text-muted"> / piece</span>
+                              </div>
+                              {p.priceVisible === false && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 mt-0.5">
+                                  Price Hidden
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <div>
+                              <span className="font-bold text-charcoal text-xs">
+                                Price on Enquiry
+                              </span>
+                              <span className="text-[10px] text-muted block">
+                                No rate entered
+                              </span>
+                            </div>
                           )}
                         </div>
 
-                        <div>
+                        <div className="text-right">
                           {isOutOfStock ? (
                             <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
                               Out of Stock
                             </span>
                           ) : isLowStock ? (
                             <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                              Low Stock ({p.stockQuantity})
+                              Limited Stock
                             </span>
                           ) : (
-                            <span className="text-[10px] text-muted">
-                              {p.stockQuantity} pcs in stock
+                            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              Full Stock
                             </span>
                           )}
+                          <span className="text-[9px] text-muted block mt-0.5">
+                            Internal: {p.stockQuantity} pcs
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -724,6 +758,7 @@ export function AdminProductList({ categories }: AdminProductListProps) {
                   groupName: previewProduct.groupName,
                   pricePerPiece: previewProduct.pricePerPiece,
                   stockQuantity: previewProduct.stockQuantity,
+                  stockStatus: previewProduct.stockStatus,
                   description: previewProduct.description,
                   imageUrl: previewProduct.imageUrl,
                   images: previewProduct.images,

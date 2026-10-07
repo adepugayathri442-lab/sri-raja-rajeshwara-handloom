@@ -6,8 +6,9 @@ export interface MobileProduct {
   name: string;
   slug: string;
   product_code: string;
-  price_per_piece: number;
+  price_per_piece: number | null;
   stock_quantity: number;
+  stock_status?: 'full' | 'limited' | 'out_of_stock';
   description: string;
   image_url: string | null;
   category_id: string;

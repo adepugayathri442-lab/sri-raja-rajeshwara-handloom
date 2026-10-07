@@ -9,7 +9,7 @@
  */
 
 import { createClient } from './client';
-import type { CategoryRow, ProductRow, ProductImageRow, Product } from '@/types';
+import type { CategoryRow, ProductRow, ProductImageRow, Product, StockStatus } from '@/types';
 import { WHOLESALE_CATEGORIES } from '@/config/categories';
 
 export interface CategoryWithCount extends CategoryRow {
@@ -243,6 +243,11 @@ function mapProductRow(row: ProductWithRelations): Product {
     ? row.image_url
     : images[0] || null;
 
+  const rawPrice = row.price_per_piece !== null && row.price_per_piece !== undefined && !isNaN(Number(row.price_per_piece))
+    ? Number(row.price_per_piece)
+    : null;
+  const hasValidPrice = rawPrice !== null && rawPrice > 0;
+
   return {
     id: row.id,
     productCode: row.product_code,
@@ -251,13 +256,15 @@ function mapProductRow(row: ProductWithRelations): Product {
     categoryId: row.category_id,
     categoryName: row.category?.name || undefined,
     groupName: row.category?.group_name || undefined,
-    pricePerPiece: Number(row.price_per_piece),
-    stockQuantity: Number(row.stock_quantity),
+    pricePerPiece: hasValidPrice ? rawPrice : null,
+    stockQuantity: Number(row.stock_quantity ?? 0),
+    stockStatus: ((row as { stock_status?: string }).stock_status as StockStatus) ||
+      (Number(row.stock_quantity ?? 0) <= 0 ? 'out_of_stock' : 'full'),
     description: row.description,
     imageUrl: primaryImage,
     images,
     isActive: Boolean(row.is_active),
-    priceVisible: row.price_visible !== false,
+    priceVisible: hasValidPrice && row.price_visible !== false,
   };
 }
 

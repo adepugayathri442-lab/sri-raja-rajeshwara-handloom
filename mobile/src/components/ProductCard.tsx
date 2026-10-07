@@ -12,10 +12,15 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps) {
-  const stock = Number(product.stock_quantity ?? 0);
-  const isOutOfStock = stock <= 0;
-  const isLowStock = stock > 0 && stock <= 20;
-  const isPriceVisible = product.price_visible !== false;
+  const rawPrice = product.price_per_piece !== null && product.price_per_piece !== undefined && !isNaN(Number(product.price_per_piece))
+    ? Number(product.price_per_piece)
+    : null;
+  const hasValidPrice = rawPrice !== null && rawPrice > 0;
+  const isPriceVisible = Boolean(hasValidPrice && product.price_visible !== false);
+
+  const stockStatus = product.stock_status || (Number(product.stock_quantity ?? 0) <= 0 ? 'out_of_stock' : Number(product.stock_quantity ?? 0) <= 10 ? 'limited' : 'full');
+  const isOutOfStock = stockStatus === 'out_of_stock' || Number(product.stock_quantity ?? 0) <= 0;
+  const isLimitedStock = stockStatus === 'limited';
 
   const handleGetPrice = () => {
     const text = encodeURIComponent(
@@ -56,10 +61,10 @@ export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps)
         <View style={styles.badgeOverlay}>
           {isOutOfStock ? (
             <Badge label="Out of Stock" variant="danger" size="sm" />
-          ) : isLowStock ? (
-            <Badge label={`Low Stock (${stock})`} variant="warning" size="sm" />
+          ) : isLimitedStock ? (
+            <Badge label="Limited Stock" variant="warning" size="sm" />
           ) : (
-            <Badge label="In Stock" variant="success" size="sm" />
+            <Badge label="Full Stock" variant="success" size="sm" />
           )}
         </View>
       </View>
@@ -86,7 +91,7 @@ export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps)
               <Text style={styles.pieceRateLabel}>Wholesale Fixed Rate</Text>
               <View style={styles.priceValueRow}>
                 <Text style={styles.priceSymbol}>₹</Text>
-                <Text style={styles.priceAmount}>{product.price_per_piece}</Text>
+                <Text style={styles.priceAmount}>{rawPrice}</Text>
                 <Text style={styles.priceUnit}> / piece</Text>
               </View>
             </View>
@@ -94,10 +99,10 @@ export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps)
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={onAddToCart}
-              disabled={isOutOfStock}
+              disabled={isOutOfStock || !isPriceVisible || rawPrice === null}
               style={[
                 styles.addBtn,
-                isOutOfStock && styles.addBtnDisabled,
+                (isOutOfStock || !isPriceVisible || rawPrice === null) && styles.addBtnDisabled,
               ]}
             >
               <Ionicons
