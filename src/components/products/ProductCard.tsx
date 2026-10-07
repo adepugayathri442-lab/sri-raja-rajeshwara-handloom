@@ -30,10 +30,20 @@ export function ProductCard({ product }: ProductCardProps) {
   const { isAuthenticated } = useAuth();
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const isPriceVisible = product.priceVisible !== false;
   const isOutOfStock = product.stockQuantity <= 0;
   const isLowStock = product.stockQuantity > 0 && product.stockQuantity <= 10;
+
+  const displayImage = product.imageUrl || (product.images && product.images.length > 0 ? product.images[0] : null);
+  const hasValidImage = Boolean(
+    displayImage &&
+    typeof displayImage === 'string' &&
+    displayImage.trim() !== '' &&
+    displayImage !== 'null' &&
+    !imageError
+  );
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -70,13 +80,14 @@ export function ProductCard({ product }: ProductCardProps) {
       <div>
         {/* Product Media Area */}
         <Link href={`/products/${product.slug}`} className="block relative aspect-4/3 bg-surface-subtle overflow-hidden">
-          {product.imageUrl ? (
+          {hasValidImage ? (
             <Image
-              src={product.imageUrl}
+              src={displayImage!}
               alt={`${product.name} - Wholesale Handloom`}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className="object-cover group-hover:scale-105 transition-transform duration-500"
+              onError={() => setImageError(true)}
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-cream to-surface-subtle border-b border-border/60">

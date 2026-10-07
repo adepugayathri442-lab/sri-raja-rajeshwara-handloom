@@ -88,9 +88,12 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
         ? [{ url: initialData.imageUrl, isPrimary: true, sortOrder: 0 }]
         : [];
     }
+    const hasMatchingPrimary = Boolean(
+      initialData.imageUrl && initialData.images.includes(initialData.imageUrl)
+    );
     return initialData.images.map((url, idx) => ({
       url,
-      isPrimary: url === initialData.imageUrl || idx === 0,
+      isPrimary: hasMatchingPrimary ? url === initialData.imageUrl : idx === 0,
       sortOrder: idx,
     }));
   });

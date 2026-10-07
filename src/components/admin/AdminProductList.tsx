@@ -383,9 +383,9 @@ export function AdminProductList({ categories }: AdminProductListProps) {
                         {/* Thumbnail */}
                         <td className="py-3 px-4">
                           <div className="w-12 h-12 rounded-lg bg-surface-subtle border border-border overflow-hidden relative shrink-0">
-                            {p.imageUrl ? (
+                            {p.imageUrl || (p.images && p.images[0]) ? (
                               <Image
-                                src={p.imageUrl}
+                                src={p.imageUrl || p.images[0]}
                                 alt={p.name}
                                 fill
                                 sizes="48px"
@@ -529,9 +529,9 @@ export function AdminProductList({ categories }: AdminProductListProps) {
                 >
                   <div className="flex items-start gap-3">
                     <div className="w-16 h-16 rounded-lg bg-surface-subtle border border-border overflow-hidden relative shrink-0">
-                      {p.imageUrl ? (
+                      {p.imageUrl || (p.images && p.images[0]) ? (
                         <Image
-                          src={p.imageUrl}
+                          src={p.imageUrl || p.images[0]}
                           alt={p.name}
                           fill
                           sizes="64px"

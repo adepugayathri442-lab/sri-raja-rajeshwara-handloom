@@ -30,6 +30,8 @@ export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps)
     );
   };
 
+  const cardImage = product.image_url || (product.product_images && product.product_images.length > 0 ? product.product_images[0].image_url : null);
+
   return (
     <TouchableOpacity
       activeOpacity={0.85}
@@ -38,9 +40,9 @@ export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps)
     >
       {/* Product Image Area */}
       <View style={styles.imageContainer}>
-        {product.image_url ? (
+        {cardImage ? (
           <Image
-            source={{ uri: product.image_url }}
+            source={{ uri: cardImage }}
             style={styles.image}
             resizeMode="cover"
           />

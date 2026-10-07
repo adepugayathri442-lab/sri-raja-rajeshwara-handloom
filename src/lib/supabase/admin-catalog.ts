@@ -215,11 +215,18 @@ export async function getAdminProducts(
       const images = (row.product_images || [])
         .slice()
         .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-        .map((img) => img.image_url);
+        .map((img) => img.image_url)
+        .filter((url): url is string => Boolean(url && typeof url === 'string' && url.trim() !== '' && url !== 'null'));
 
-      if (row.image_url && !images.includes(row.image_url)) {
-        images.unshift(row.image_url);
+      if (row.image_url && typeof row.image_url === 'string' && row.image_url.trim() !== '' && row.image_url !== 'null') {
+        if (!images.includes(row.image_url)) {
+          images.unshift(row.image_url);
+        }
       }
+
+      const primaryImage = (row.image_url && typeof row.image_url === 'string' && row.image_url.trim() !== '' && row.image_url !== 'null')
+        ? row.image_url
+        : images[0] || null;
 
       return {
         id: row.id,
@@ -232,7 +239,7 @@ export async function getAdminProducts(
         pricePerPiece: Number(row.price_per_piece),
         stockQuantity: Number(row.stock_quantity),
         description: row.description,
-        imageUrl: row.image_url || images[0] || null,
+        imageUrl: primaryImage,
         images,
         isActive: Boolean(row.is_active),
         priceVisible: row.price_visible !== false,
@@ -278,11 +285,18 @@ export async function getAdminProductById(id: string): Promise<AdminProductListI
     const images = (row.product_images || [])
       .slice()
       .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
-      .map((img) => img.image_url);
+      .map((img) => img.image_url)
+      .filter((url): url is string => Boolean(url && typeof url === 'string' && url.trim() !== '' && url !== 'null'));
 
-    if (row.image_url && !images.includes(row.image_url)) {
-      images.unshift(row.image_url);
+    if (row.image_url && typeof row.image_url === 'string' && row.image_url.trim() !== '' && row.image_url !== 'null') {
+      if (!images.includes(row.image_url)) {
+        images.unshift(row.image_url);
+      }
     }
+
+    const primaryImage = (row.image_url && typeof row.image_url === 'string' && row.image_url.trim() !== '' && row.image_url !== 'null')
+      ? row.image_url
+      : images[0] || null;
 
     return {
       id: row.id,
@@ -295,7 +309,7 @@ export async function getAdminProductById(id: string): Promise<AdminProductListI
       pricePerPiece: Number(row.price_per_piece),
       stockQuantity: Number(row.stock_quantity),
       description: row.description,
-      imageUrl: row.image_url || images[0] || null,
+      imageUrl: primaryImage,
       images,
       isActive: Boolean(row.is_active),
       priceVisible: row.price_visible !== false,

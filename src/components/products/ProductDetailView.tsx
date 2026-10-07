@@ -47,11 +47,17 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
 
-  const images = product.images && product.images.length > 0
+  const [failedIndices, setFailedIndices] = useState<Set<number>>(new Set());
+
+  const rawImages = product.images && product.images.length > 0
     ? product.images
     : product.imageUrl
     ? [product.imageUrl]
     : [];
+
+  const images = rawImages.filter(
+    (img): img is string => typeof img === 'string' && img.trim() !== '' && img !== 'null'
+  );
 
   const isPriceVisible = product.priceVisible !== false;
   const isOutOfStock = product.stockQuantity <= 0;
@@ -125,7 +131,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
         <div className="lg:col-span-6 space-y-4">
           {/* Main Display Image */}
           <div className="relative aspect-4/3 sm:aspect-square bg-surface-subtle rounded-xl border border-border overflow-hidden shadow-xs">
-            {images.length > 0 ? (
+            {images.length > 0 && !failedIndices.has(selectedImageIndex) ? (
               <Image
                 src={images[selectedImageIndex] || images[0]}
                 alt={`${product.name} - Wholesale Indian Handloom`}
@@ -133,6 +139,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
                 priority
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 className="object-cover"
+                onError={() => setFailedIndices((prev) => new Set(prev).add(selectedImageIndex))}
               />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gradient-to-br from-cream to-surface-subtle">
