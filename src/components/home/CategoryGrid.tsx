@@ -103,7 +103,7 @@ export async function CategoryGrid() {
                           Any Quantity Order
                         </span>
                         <Link
-                          href={`/products?category=${cat.slug}`}
+                          href={`/categories/${cat.slug}`}
                           className="inline-flex items-center gap-1.5 text-xs font-bold text-primary group-hover:text-accent transition-colors"
                         >
                           <span>View Products</span>

@@ -122,7 +122,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
           <>
             <span>/</span>
             <Link
-              href={`/products?category=${product.slug}`}
+              href={product.categorySlug ? `/categories/${product.categorySlug}` : '/categories'}
               className="hover:text-primary transition-colors"
             >
               {product.categoryName}

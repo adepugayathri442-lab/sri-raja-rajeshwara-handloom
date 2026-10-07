@@ -37,7 +37,7 @@ export async function FeaturedProductsSection() {
           {categories.map((cat) => (
             <Link
               key={cat.id}
-              href={`/products?category=${cat.slug}`}
+              href={`/categories/${cat.slug}`}
               className="px-3 py-1.5 rounded-full text-xs font-medium bg-surface text-charcoal hover:bg-surface-border border border-border transition-colors hover:border-accent"
             >
               {cat.name}

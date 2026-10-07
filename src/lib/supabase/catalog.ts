@@ -62,53 +62,53 @@ export async function getCategories(): Promise<CategoryRow[]> {
  * Fetch a single category by its URL slug
  */
 export async function getCategoryBySlug(slug: string): Promise<CategoryRow | null> {
+  const cleanSlug = decodeURIComponent(slug || '').trim();
+  if (!cleanSlug) return null;
+
   try {
     const supabase = createClient();
     if (!supabase) {
-      const fallback = WHOLESALE_CATEGORIES.find((c) => c.slug === slug);
-      if (!fallback) return null;
-      return {
-        id: fallback.id,
-        name: fallback.name,
-        slug: fallback.slug,
-        group_name: fallback.groupName,
-        description: fallback.description,
-        image_url: null,
-        is_active: true,
-        sort_order: fallback.sortOrder,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      return getStaticCategoryFallback(cleanSlug);
     }
 
-    const { data, error } = await supabase
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanSlug);
+
+    let query = supabase
       .from('categories')
       .select('*')
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single();
+      .eq('is_active', true);
 
-    if (error || !data) {
-      const fallback = WHOLESALE_CATEGORIES.find((c) => c.slug === slug);
-      if (!fallback) return null;
-      return {
-        id: fallback.id,
-        name: fallback.name,
-        slug: fallback.slug,
-        group_name: fallback.groupName,
-        description: fallback.description,
-        image_url: null,
-        is_active: true,
-        sort_order: fallback.sortOrder,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+    if (isUuid) {
+      query = query.or(`id.eq.${cleanSlug},slug.ilike.${cleanSlug}`);
+    } else {
+      query = query.or(`slug.ilike.${cleanSlug},name.ilike.${cleanSlug}`);
     }
 
-    return data;
+    const { data, error } = await query.limit(1).maybeSingle();
+
+    if (data && !error) {
+      return data;
+    }
+
+    // Try finding by matching static category name in database
+    const staticMatch = WHOLESALE_CATEGORIES.find(
+      (c) => c.slug.toLowerCase() === cleanSlug.toLowerCase() || c.name.toLowerCase() === cleanSlug.toLowerCase()
+    );
+    if (staticMatch) {
+      const { data: dbByName } = await supabase
+        .from('categories')
+        .select('*')
+        .ilike('name', staticMatch.name)
+        .limit(1)
+        .maybeSingle();
+
+      if (dbByName) return dbByName;
+    }
+
+    return getStaticCategoryFallback(cleanSlug);
   } catch (err) {
     console.error(`Error fetching category with slug ${slug}:`, err);
-    return null;
+    return getStaticCategoryFallback(cleanSlug);
   }
 }
 
@@ -130,12 +130,46 @@ export async function getProducts(options: GetProductsOptions = {}): Promise<{
       .select('*, category:categories(*), product_images(*)', { count: 'exact' })
       .eq('is_active', true);
 
-    // Filter by Category Slug
+    // Filter by Category Slug: strictly resolve to a valid UUID foreign key
     if (options.categorySlug && options.categorySlug !== 'all') {
-      const category = await getCategoryBySlug(options.categorySlug);
-      if (category) {
-        query = query.eq('category_id', category.id);
+      const cleanCatSlug = decodeURIComponent(options.categorySlug).trim();
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanCatSlug);
+
+      let targetCategoryId: string | null = null;
+      if (isUuid) {
+        targetCategoryId = cleanCatSlug;
       } else {
+        const { data: dbCat } = await supabase
+          .from('categories')
+          .select('id')
+          .or(`slug.ilike.${cleanCatSlug},name.ilike.${cleanCatSlug}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (dbCat?.id) {
+          targetCategoryId = dbCat.id;
+        } else {
+          const staticMatch = WHOLESALE_CATEGORIES.find(
+            (c) => c.slug.toLowerCase() === cleanCatSlug.toLowerCase() || c.name.toLowerCase() === cleanCatSlug.toLowerCase()
+          );
+          if (staticMatch) {
+            const { data: dbByName } = await supabase
+              .from('categories')
+              .select('id')
+              .ilike('name', staticMatch.name)
+              .limit(1)
+              .maybeSingle();
+            if (dbByName?.id) {
+              targetCategoryId = dbByName.id;
+            }
+          }
+        }
+      }
+
+      if (targetCategoryId) {
+        query = query.eq('category_id', targetCategoryId);
+      } else {
+        // Category does not exist in database, return 0 products safely without crashing Postgres
         return { products: [], totalCount: 0 };
       }
     }
@@ -197,19 +231,31 @@ export async function getProducts(options: GetProductsOptions = {}): Promise<{
 }
 
 /**
- * Fetch a single product by slug, including category and all image gallery items
+ * Fetch a single product by slug or UUID, including category and all image gallery items
+ * Strictly loads only that specific product's own details and photos.
  */
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
     const supabase = createClient();
     if (!supabase) return null;
 
-    const { data, error } = await supabase
+    const cleanSlug = decodeURIComponent(slug || '').trim();
+    if (!cleanSlug) return null;
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanSlug);
+
+    let query = supabase
       .from('products')
       .select('*, category:categories(*), product_images(*)')
-      .eq('slug', slug)
-      .eq('is_active', true)
-      .single();
+      .eq('is_active', true);
+
+    if (isUuid) {
+      query = query.or(`slug.eq.${cleanSlug},id.eq.${cleanSlug}`);
+    } else {
+      query = query.eq('slug', cleanSlug);
+    }
+
+    const { data, error } = await query.limit(1).maybeSingle();
 
     if (error || !data) {
       return null;
@@ -224,6 +270,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
 /**
  * Helper to map Supabase Product row with joined relations to Frontend Product Model
+ * Guarantees photos, pricing, stock, and details belong exclusively to this individual product.
  */
 function mapProductRow(row: ProductWithRelations): Product {
   const images = (row.product_images || [])
@@ -255,6 +302,7 @@ function mapProductRow(row: ProductWithRelations): Product {
     slug: row.slug,
     categoryId: row.category_id,
     categoryName: row.category?.name || undefined,
+    categorySlug: row.category?.slug || undefined,
     groupName: row.category?.group_name || undefined,
     pricePerPiece: hasValidPrice ? rawPrice : null,
     stockQuantity: Number(row.stock_quantity ?? 0),
@@ -284,4 +332,26 @@ function getFallbackCategories(): CategoryRow[] {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }));
+}
+
+/**
+ * Fallback single category lookup from static WHOLESALE_CATEGORIES
+ */
+function getStaticCategoryFallback(cleanSlug: string): CategoryRow | null {
+  const fallback = WHOLESALE_CATEGORIES.find(
+    (c) => c.slug.toLowerCase() === cleanSlug.toLowerCase() || c.name.toLowerCase() === cleanSlug.toLowerCase()
+  );
+  if (!fallback) return null;
+  return {
+    id: fallback.id,
+    name: fallback.name,
+    slug: fallback.slug,
+    group_name: fallback.groupName,
+    description: fallback.description,
+    image_url: null,
+    is_active: true,
+    sort_order: fallback.sortOrder,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
 }

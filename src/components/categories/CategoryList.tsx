@@ -89,7 +89,7 @@ export async function CategoryList() {
                       Any Quantity
                     </span>
                     <Link
-                      href={`/products?category=${category.slug}`}
+                      href={`/categories/${category.slug}`}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-primary group-hover:text-accent transition-colors"
                     >
                       <span>Explore Products</span>

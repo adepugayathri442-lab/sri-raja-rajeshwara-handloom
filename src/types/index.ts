@@ -32,6 +32,7 @@ export interface Product {
   slug: string;
   categoryId: string;
   categoryName?: string;
+  categorySlug?: string;
   groupName?: string;
   pricePerPiece: number | null;
   stockQuantity: number;
