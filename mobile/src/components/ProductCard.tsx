@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../config/colors';
 import { Badge } from './Badge';
@@ -15,6 +15,20 @@ export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps)
   const stock = Number(product.stock_quantity ?? 0);
   const isOutOfStock = stock <= 0;
   const isLowStock = stock > 0 && stock <= 20;
+  const isPriceVisible = product.price_visible !== false;
+
+  const handleGetPrice = () => {
+    const text = encodeURIComponent(
+      `*SRI RAJA RAJESHWARA HANDLOOM — Price Enquiry*\n\n` +
+      `Product: ${product.name}\n` +
+      `Code: ${product.product_code}\n` +
+      `Category: ${product.category?.name || 'Wholesale Handloom'}\n\n` +
+      `Please provide the wholesale price per piece and dispatch availability.`
+    );
+    Linking.openURL(`https://wa.me/919440472939?text=${text}`).catch((err) =>
+      console.warn('Could not open WhatsApp:', err)
+    );
+  };
 
   return (
     <TouchableOpacity
@@ -63,33 +77,51 @@ export function ProductCard({ product, onPress, onAddToCart }: ProductCardProps)
           {product.name}
         </Text>
 
-        {/* Pricing Box - Strictly 1 Fixed Piece Rate */}
-        <View style={styles.priceRow}>
-          <View>
-            <Text style={styles.pieceRateLabel}>Wholesale Fixed Rate</Text>
-            <View style={styles.priceValueRow}>
-              <Text style={styles.priceSymbol}>₹</Text>
-              <Text style={styles.priceAmount}>{product.price_per_piece}</Text>
-              <Text style={styles.priceUnit}> / piece</Text>
+        {/* Pricing Box */}
+        {isPriceVisible ? (
+          <View style={styles.priceRow}>
+            <View>
+              <Text style={styles.pieceRateLabel}>Wholesale Fixed Rate</Text>
+              <View style={styles.priceValueRow}>
+                <Text style={styles.priceSymbol}>₹</Text>
+                <Text style={styles.priceAmount}>{product.price_per_piece}</Text>
+                <Text style={styles.priceUnit}> / piece</Text>
+              </View>
             </View>
-          </View>
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={onAddToCart}
-            disabled={isOutOfStock}
-            style={[
-              styles.addBtn,
-              isOutOfStock && styles.addBtnDisabled,
-            ]}
-          >
-            <Ionicons
-              name="cart-outline"
-              size={18}
-              color={isOutOfStock ? '#9CA3AF' : colors.white}
-            />
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={onAddToCart}
+              disabled={isOutOfStock}
+              style={[
+                styles.addBtn,
+                isOutOfStock && styles.addBtnDisabled,
+              ]}
+            >
+              <Ionicons
+                name="cart-outline"
+                size={18}
+                color={isOutOfStock ? '#9CA3AF' : colors.white}
+              />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.priceRow}>
+            <View>
+              <Text style={styles.pieceRateLabel}>Wholesale Rate</Text>
+              <Text style={styles.enquiryPriceText}>Price On Enquiry</Text>
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleGetPrice}
+              style={styles.getPriceBtn}
+            >
+              <Ionicons name="logo-whatsapp" size={13} color="#FFFFFF" style={{ marginRight: 3 }} />
+              <Text style={styles.getPriceBtnText}>Get Price</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -212,5 +244,25 @@ const styles = StyleSheet.create({
   },
   addBtnDisabled: {
     backgroundColor: '#E5E7EB',
+  },
+  enquiryPriceText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
+    marginTop: 2,
+  },
+  getPriceBtn: {
+    backgroundColor: '#128C7E',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  getPriceBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

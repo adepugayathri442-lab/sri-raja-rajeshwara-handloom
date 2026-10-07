@@ -418,10 +418,21 @@ export function AdminProductList({ categories }: AdminProductListProps) {
 
                         {/* Wholesale Price */}
                         <td className="py-3 px-4 whitespace-nowrap">
-                          <span className="font-serif font-bold text-primary text-sm">
-                            ₹{p.pricePerPiece.toLocaleString('en-IN')}
-                          </span>
-                          <span className="text-[10px] text-muted block">/ piece</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-serif font-bold text-primary text-sm">
+                              ₹{p.pricePerPiece.toLocaleString('en-IN')}
+                            </span>
+                            <span className="text-[10px] text-muted">/ pc</span>
+                          </div>
+                          {p.priceVisible === false ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 mt-0.5">
+                              Price Hidden
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-emerald-600 block mt-0.5">
+                              Visible
+                            </span>
+                          )}
                         </td>
 
                         {/* Stock */}
@@ -556,10 +567,17 @@ export function AdminProductList({ categories }: AdminProductListProps) {
 
                       <div className="mt-2 flex items-baseline justify-between">
                         <div>
-                          <span className="font-serif font-bold text-primary text-base">
-                            ₹{p.pricePerPiece.toLocaleString('en-IN')}
-                          </span>
-                          <span className="text-[10px] text-muted"> / piece</span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="font-serif font-bold text-primary text-base">
+                              ₹{p.pricePerPiece.toLocaleString('en-IN')}
+                            </span>
+                            <span className="text-[10px] text-muted"> / piece</span>
+                          </div>
+                          {p.priceVisible === false && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 mt-0.5">
+                              Price Hidden
+                            </span>
+                          )}
                         </div>
 
                         <div>
@@ -710,6 +728,7 @@ export function AdminProductList({ categories }: AdminProductListProps) {
                   imageUrl: previewProduct.imageUrl,
                   images: previewProduct.images,
                   isActive: previewProduct.isActive,
+                  priceVisible: previewProduct.priceVisible,
                 }}
               />
             </div>

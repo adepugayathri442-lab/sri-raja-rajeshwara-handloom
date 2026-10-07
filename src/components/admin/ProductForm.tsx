@@ -71,6 +71,7 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
   );
   const [description, setDescription] = useState(initialData?.description || '');
   const [isActive, setIsActive] = useState<boolean>(initialData?.isActive ?? true);
+  const [priceVisible, setPriceVisible] = useState<boolean>(initialData?.priceVisible ?? true);
 
   // Helper to generate SKU based on selected category
   const handleGenerateSku = () => {
@@ -245,6 +246,7 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
       stockQuantity: numericStock,
       description: description.trim() || cleanName,
       isActive,
+      priceVisible,
       images: images.map((img, idx) => ({
         url: img.url,
         sortOrder: idx,
@@ -498,6 +500,66 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
                 <p className="text-[11px] text-muted">
                   Integer quantity in warehouse inventory. 0 displays as &ldquo;Out of Stock&rdquo; on the storefront.
                 </p>
+              </div>
+            </div>
+
+            {/* Price Display (Show / Hide Price) */}
+            <div className="pt-3 border-t border-border/60 space-y-2">
+              <div>
+                <label className="text-xs font-semibold text-charcoal block">
+                  Price Display <span className="text-rose-600">*</span>
+                </label>
+                <p className="text-[11px] text-muted">
+                  Choose whether the wholesale price should be visible to customers.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <label
+                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                    priceVisible
+                      ? 'bg-amber-50/50 border-primary ring-1 ring-primary'
+                      : 'bg-surface-subtle border-border hover:bg-surface'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="priceDisplay"
+                    value="show"
+                    checked={priceVisible === true}
+                    onChange={() => setPriceVisible(true)}
+                    className="mt-0.5 text-primary focus:ring-accent"
+                  />
+                  <div className="text-xs">
+                    <span className="font-semibold text-charcoal block">Show Price</span>
+                    <span className="text-muted text-[11px] block mt-0.5">
+                      Fixed wholesale rate is publicly displayed on cards and detail page. Regular cart order flow enabled.
+                    </span>
+                  </div>
+                </label>
+
+                <label
+                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                    !priceVisible
+                      ? 'bg-amber-50/50 border-primary ring-1 ring-primary'
+                      : 'bg-surface-subtle border-border hover:bg-surface'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="priceDisplay"
+                    value="hide"
+                    checked={priceVisible === false}
+                    onChange={() => setPriceVisible(false)}
+                    className="mt-0.5 text-primary focus:ring-accent"
+                  />
+                  <div className="text-xs">
+                    <span className="font-semibold text-charcoal block">Hide Price</span>
+                    <span className="text-muted text-[11px] block mt-0.5">
+                      Wholesale price is hidden everywhere publicly. Buyers see &ldquo;Get Price&rdquo; WhatsApp enquiry button.
+                    </span>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -772,6 +834,7 @@ export function ProductForm({ categories, initialData, isEdit = false }: Product
                 imageUrl: primaryImageUrl,
                 images: images.map((i) => i.url),
                 isActive,
+                priceVisible,
               }}
             />
           </div>

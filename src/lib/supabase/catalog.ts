@@ -250,6 +250,7 @@ function mapProductRow(row: ProductWithRelations): Product {
     imageUrl: row.image_url || images[0] || null,
     images,
     isActive: Boolean(row.is_active),
+    priceVisible: row.price_visible !== false,
   };
 }
 

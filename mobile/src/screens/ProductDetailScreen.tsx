@@ -70,6 +70,7 @@ export function ProductDetailScreen() {
   const stock = Number(product.stock_quantity ?? 0);
   const isOutOfStock = stock <= 0;
   const isLowStock = stock > 0 && stock <= 20;
+  const isPriceVisible = product.price_visible !== false;
 
   // Build image list
   const images = product.product_images && product.product_images.length > 0
@@ -79,6 +80,7 @@ export function ProductDetailScreen() {
     : [];
 
   const handleAddToCart = () => {
+    if (!isPriceVisible || isOutOfStock) return;
     if (!isAuthenticated) {
       navigation.navigate('Login', { returnTo: 'CartTab' });
       return;
@@ -107,15 +109,24 @@ export function ProductDetailScreen() {
   };
 
   const openWhatsApp = () => {
-    const text = encodeURIComponent(
-      `*SRI RAJA RAJESHWARA HANDLOOM — Wholesale Product Enquiry*\n\n` +
-      `Product: ${product.name}\n` +
-      `Code: ${product.product_code}\n` +
-      `Category: ${product.category?.name || 'Textile'}\n` +
-      `Fixed Rate: ₹${product.price_per_piece}/pc\n` +
-      `Quantity Required: ${quantity} pieces\n\n` +
-      `Please confirm piece rate availability and dispatch details.`
-    );
+    const text = isPriceVisible
+      ? encodeURIComponent(
+          `*SRI RAJA RAJESHWARA HANDLOOM — Wholesale Product Enquiry*\n\n` +
+          `Product: ${product.name}\n` +
+          `Code: ${product.product_code}\n` +
+          `Category: ${product.category?.name || 'Textile'}\n` +
+          `Fixed Rate: ₹${product.price_per_piece}/pc\n` +
+          `Quantity Required: ${quantity} pieces\n\n` +
+          `Please confirm piece rate availability and dispatch details.`
+        )
+      : encodeURIComponent(
+          `*SRI RAJA RAJESHWARA HANDLOOM — Wholesale Price Enquiry*\n\n` +
+          `Product: ${product.name}\n` +
+          `Code: ${product.product_code}\n` +
+          `Category: ${product.category?.name || 'Textile'}\n` +
+          `Quantity Required: ${quantity} pieces\n\n` +
+          `Please provide the wholesale price per piece and dispatch availability.`
+        );
     Linking.openURL(`https://wa.me/919440472939?text=${text}`).catch((err) =>
       console.warn('Could not open WhatsApp:', err)
     );
@@ -195,14 +206,23 @@ export function ProductDetailScreen() {
 
           {/* Pricing Highlight */}
           <View style={styles.priceContainer}>
-            <View>
-              <Text style={styles.priceSub}>WHOLESALE FIXED PIECE RATE</Text>
-              <View style={styles.priceRow}>
-                <Text style={styles.priceSymbol}>₹</Text>
-                <Text style={styles.priceNumber}>{product.price_per_piece}</Text>
-                <Text style={styles.priceUnit}> / piece</Text>
+            {isPriceVisible ? (
+              <View>
+                <Text style={styles.priceSub}>WHOLESALE FIXED PIECE RATE</Text>
+                <View style={styles.priceRow}>
+                  <Text style={styles.priceSymbol}>₹</Text>
+                  <Text style={styles.priceNumber}>{product.price_per_piece}</Text>
+                  <Text style={styles.priceUnit}> / piece</Text>
+                </View>
               </View>
-            </View>
+            ) : (
+              <View>
+                <Text style={styles.priceSub}>WHOLESALE PRICING</Text>
+                <Text style={[styles.priceNumber, { fontSize: 16, marginTop: 4 }]}>
+                  Price On Enquiry
+                </Text>
+              </View>
+            )}
 
             <View style={styles.noMoqBadge}>
               <Ionicons name="infinite" size={14} color={colors.primary} />
@@ -229,29 +249,44 @@ export function ProductDetailScreen() {
               </TouchableOpacity>
             </View>
             <Text style={styles.subtotalPreview}>
-              Subtotal: ₹{product.price_per_piece * quantity}
+              {isPriceVisible
+                ? `Subtotal: ₹${product.price_per_piece * quantity}`
+                : `Quantity: ${quantity} pcs`}
             </Text>
           </View>
 
           {/* CTA Actions */}
           <View style={styles.ctaRow}>
-            <Button
-              title="Add to Cart"
-              icon="cart-outline"
-              variant="primary"
-              size="lg"
-              disabled={isOutOfStock}
-              onPress={handleAddToCart}
-              style={styles.ctaBtn}
-            />
-            <Button
-              title="WhatsApp Enquiry"
-              icon="logo-whatsapp"
-              variant="whatsapp"
-              size="lg"
-              onPress={openWhatsApp}
-              style={styles.ctaBtn}
-            />
+            {isPriceVisible ? (
+              <>
+                <Button
+                  title="Add to Cart"
+                  icon="cart-outline"
+                  variant="primary"
+                  size="lg"
+                  disabled={isOutOfStock}
+                  onPress={handleAddToCart}
+                  style={styles.ctaBtn}
+                />
+                <Button
+                  title="WhatsApp Enquiry"
+                  icon="logo-whatsapp"
+                  variant="whatsapp"
+                  size="lg"
+                  onPress={openWhatsApp}
+                  style={styles.ctaBtn}
+                />
+              </>
+            ) : (
+              <Button
+                title="Get Price (WhatsApp Enquiry)"
+                icon="logo-whatsapp"
+                variant="whatsapp"
+                size="lg"
+                onPress={openWhatsApp}
+                style={styles.ctaBtn}
+              />
+            )}
           </View>
         </View>
 

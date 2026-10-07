@@ -34,6 +34,7 @@ export interface AdminProductListItem {
   imageUrl: string | null;
   images: string[];
   isActive: boolean;
+  priceVisible: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -46,6 +47,7 @@ export interface AdminProductInput {
   stockQuantity: number;
   description: string;
   isActive: boolean;
+  priceVisible: boolean;
   images: Array<{
     url: string;
     sortOrder: number;
@@ -233,6 +235,7 @@ export async function getAdminProducts(
         imageUrl: row.image_url || images[0] || null,
         images,
         isActive: Boolean(row.is_active),
+        priceVisible: row.price_visible !== false,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       };
@@ -295,6 +298,7 @@ export async function getAdminProductById(id: string): Promise<AdminProductListI
       imageUrl: row.image_url || images[0] || null,
       images,
       isActive: Boolean(row.is_active),
+      priceVisible: row.price_visible !== false,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -370,6 +374,7 @@ export async function createProduct(
         description: input.description.trim() || cleanName,
         image_url: primaryImg,
         is_active: input.isActive,
+        price_visible: input.priceVisible !== false,
       })
       .select()
       .single();
@@ -447,6 +452,7 @@ export async function updateProduct(
         description: input.description.trim() || cleanName,
         image_url: primaryImg,
         is_active: input.isActive,
+        price_visible: input.priceVisible !== false,
       })
       .eq('id', id);
 

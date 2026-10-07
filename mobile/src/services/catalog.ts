@@ -12,6 +12,7 @@ export interface MobileProduct {
   image_url: string | null;
   category_id: string;
   is_active: boolean;
+  price_visible?: boolean;
   category?: {
     id: string;
     name: string;

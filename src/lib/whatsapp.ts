@@ -55,6 +55,7 @@ export interface ProductEnquiryParams {
   productCode: string;
   quantity: number;
   pricePerPiece: number;
+  priceVisible?: boolean;
   customerName?: string;
   businessName?: string;
   city?: string;
@@ -62,18 +63,28 @@ export interface ProductEnquiryParams {
 
 export function getProductEnquiryUrl(params: ProductEnquiryParams): string {
   const productName = params.name || params.productName || 'Handloom Textile Item';
+  const isPriceVisible = params.priceVisible !== false;
   const lineTotal = params.quantity * params.pricePerPiece;
 
-  const lines = [
-    `Business: SRI RAJA RAJESHWARA HANDLOOM`,
-    `Product: ${productName}`,
-    `Product Code: ${params.productCode}`,
-    `Price: ₹${params.pricePerPiece.toLocaleString('en-IN')} / piece`,
-    `Quantity: ${params.quantity}`,
-    `Estimated Product Total: ₹${lineTotal.toLocaleString('en-IN')}`,
-    ``,
-    `Please confirm availability and order details.`,
-  ];
+  const lines = isPriceVisible
+    ? [
+        `Business: SRI RAJA RAJESHWARA HANDLOOM`,
+        `Product: ${productName}`,
+        `Product Code: ${params.productCode}`,
+        `Price: ₹${params.pricePerPiece.toLocaleString('en-IN')} / piece`,
+        `Quantity: ${params.quantity}`,
+        `Estimated Product Total: ₹${lineTotal.toLocaleString('en-IN')}`,
+        ``,
+        `Please confirm availability and order details.`,
+      ]
+    : [
+        `Business: SRI RAJA RAJESHWARA HANDLOOM`,
+        `Product: ${productName}`,
+        `Product Code: ${params.productCode}`,
+        `Quantity Interested: ${params.quantity} piece(s)`,
+        ``,
+        `Namaste! I would like to get the wholesale piece rate and dispatch availability for this product.`,
+      ];
 
   if (params.customerName || params.businessName || params.city) {
     lines.push(``);

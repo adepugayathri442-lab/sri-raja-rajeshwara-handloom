@@ -147,6 +147,7 @@ create table if not exists public.products (
   description text not null,
   image_url text,
   is_active boolean not null default true,
+  price_visible boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -285,6 +286,7 @@ create index if not exists idx_categories_is_active on public.categories(is_acti
 create index if not exists idx_categories_group on public.categories(group_name);
 create index if not exists idx_products_category_id on public.products(category_id);
 create index if not exists idx_products_is_active on public.products(is_active);
+create index if not exists idx_products_price_visible on public.products(price_visible);
 create index if not exists idx_products_slug on public.products(slug);
 create index if not exists idx_products_code on public.products(product_code);
 create index if not exists idx_product_images_product_id on public.product_images(product_id);

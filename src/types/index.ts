@@ -35,6 +35,7 @@ export interface Product {
   imageUrl?: string | null;
   images?: string[];
   isActive: boolean;
+  priceVisible?: boolean;
 }
 
 /**

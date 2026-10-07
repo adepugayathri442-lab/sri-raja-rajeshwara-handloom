@@ -53,6 +53,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
     ? [product.imageUrl]
     : [];
 
+  const isPriceVisible = product.priceVisible !== false;
   const isOutOfStock = product.stockQuantity <= 0;
   const isLowStock = product.stockQuantity > 0 && product.stockQuantity <= 10;
   const currentTotal = product.pricePerPiece * quantity;
@@ -67,7 +68,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
   };
 
   const handleAddToCart = () => {
-    if (isOutOfStock) return;
+    if (isOutOfStock || !isPriceVisible) return;
     addItem({
       productId: product.id,
       productCode: product.productCode,
@@ -90,6 +91,7 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
     productName: product.name,
     productCode: product.productCode,
     pricePerPiece: product.pricePerPiece,
+    priceVisible: isPriceVisible,
     quantity,
   });
 
@@ -224,42 +226,77 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
           </div>
 
           {/* Wholesale Fixed Piece Pricing Block */}
-          <div className="p-5 bg-surface rounded-xl border border-border shadow-xs space-y-3">
-            <div className="flex items-baseline justify-between">
-              <div>
-                <span className="text-[11px] uppercase tracking-wider font-semibold text-muted block">
-                  Uniform Wholesale Rate
-                </span>
-                <div className="text-2xl sm:text-3xl font-bold text-primary flex items-baseline gap-1 mt-0.5">
-                  <span>₹{product.pricePerPiece.toLocaleString('en-IN')}</span>
-                  <span className="text-sm font-normal text-muted">/ piece</span>
+          {isPriceVisible ? (
+            <div className="p-5 bg-surface rounded-xl border border-border shadow-xs space-y-3">
+              <div className="flex items-baseline justify-between">
+                <div>
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-muted block">
+                    Uniform Wholesale Rate
+                  </span>
+                  <div className="text-2xl sm:text-3xl font-bold text-primary flex items-baseline gap-1 mt-0.5">
+                    <span>₹{product.pricePerPiece.toLocaleString('en-IN')}</span>
+                    <span className="text-sm font-normal text-muted">/ piece</span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-accent block">
+                    Wholesale Model
+                  </span>
+                  <span className="text-xs font-semibold text-charcoal">
+                    Fixed Rate • Any Volume
+                  </span>
                 </div>
               </div>
 
-              <div className="text-right">
-                <span className="text-[11px] uppercase tracking-wider font-semibold text-accent block">
-                  Wholesale Model
-                </span>
-                <span className="text-xs font-semibold text-charcoal">
-                  Fixed Rate • Any Volume
+              {/* Explicit Notice: No tiers or discounts */}
+              <div className="p-2.5 bg-cream/70 rounded-md border border-border/70 text-xs text-charcoal/80 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
+                <span>
+                  One fixed rate per piece across any quantity. No hidden markups or minimum volume tier restrictions.
                 </span>
               </div>
             </div>
+          ) : (
+            <div className="p-5 bg-surface rounded-xl border border-amber-200/80 bg-amber-50/40 shadow-xs space-y-3">
+              <div className="flex items-baseline justify-between">
+                <div>
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-muted block">
+                    Wholesale Pricing
+                  </span>
+                  <div className="text-2xl sm:text-3xl font-bold text-primary flex items-baseline gap-1 mt-0.5">
+                    <span>Price Available on Enquiry</span>
+                  </div>
+                </div>
 
-            {/* Explicit Notice: No tiers or discounts */}
-            <div className="p-2.5 bg-cream/70 rounded-md border border-border/70 text-xs text-charcoal/80 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
-              <span>
-                One fixed rate per piece across any quantity. No hidden markups or minimum volume tier restrictions.
-              </span>
+                <div className="text-right">
+                  <span className="text-[11px] uppercase tracking-wider font-semibold text-accent block">
+                    Wholesale Model
+                  </span>
+                  <span className="text-xs font-semibold text-charcoal">
+                    Direct Mill Rate
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-2.5 bg-white/80 rounded-md border border-amber-200 text-xs text-charcoal/80 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
+                <span>
+                  Wholesale pricing for this design is shared directly upon request. Click &quot;Get Price&quot; below for instant WhatsApp rate.
+                </span>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Quantity Selector & Real-Time Total */}
           <div className="space-y-3">
             <div className="flex items-center justify-between text-xs font-semibold text-charcoal">
               <label htmlFor="quantity-selector">Order Quantity (Pieces):</label>
-              <span>Total Value: <strong className="text-primary text-sm font-bold">₹{currentTotal.toLocaleString('en-IN')}</strong></span>
+              {isPriceVisible ? (
+                <span>Total Value: <strong className="text-primary text-sm font-bold">₹{currentTotal.toLocaleString('en-IN')}</strong></span>
+              ) : (
+                <span className="text-muted">Enquiry Quantity</span>
+              )}
             </div>
 
             <div className="flex items-center gap-3">
@@ -306,43 +343,57 @@ export function ProductDetailView({ product }: ProductDetailViewProps) {
             </div>
           </div>
 
-          {/* Action CTAs: Add to Cart & WhatsApp Order */}
+          {/* Action CTAs: Add to Cart & WhatsApp Order / Get Price */}
           <div className="space-y-3 pt-2">
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              disabled={isOutOfStock}
-              className={`w-full py-3.5 px-6 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${
-                isOutOfStock
-                  ? 'bg-surface-subtle text-muted cursor-not-allowed border border-border'
-                  : isAdded
-                  ? 'bg-emerald-700 text-white shadow-md'
-                  : 'bg-primary text-white hover:bg-primary-hover shadow-md active:scale-99'
-              }`}
-            >
-              {isAdded ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  <span>Added {quantity} Pieces to Wholesale Cart!</span>
-                </>
-              ) : (
-                <>
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>{isOutOfStock ? 'Product Out of Stock' : `Add ${quantity} Pieces to Wholesale Cart (₹${currentTotal.toLocaleString('en-IN')})`}</span>
-                </>
-              )}
-            </button>
+            {isPriceVisible ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  className={`w-full py-3.5 px-6 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+                    isOutOfStock
+                      ? 'bg-surface-subtle text-muted cursor-not-allowed border border-border'
+                      : isAdded
+                      ? 'bg-emerald-700 text-white shadow-md'
+                      : 'bg-primary text-white hover:bg-primary-hover shadow-md active:scale-99'
+                  }`}
+                >
+                  {isAdded ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Added {quantity} Pieces to Wholesale Cart!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>{isOutOfStock ? 'Product Out of Stock' : `Add ${quantity} Pieces to Wholesale Cart (₹${currentTotal.toLocaleString('en-IN')})`}</span>
+                    </>
+                  )}
+                </button>
 
-            {/* Direct WhatsApp Order */}
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3 px-6 rounded-lg font-bold text-sm bg-[#128C7E] text-white hover:bg-[#075E54] flex items-center justify-center gap-2 transition-colors shadow-xs"
-            >
-              <MessageCircle className="w-4 h-4 fill-current" />
-              <span>Order on WhatsApp (Direct Confirmation)</span>
-            </a>
+                {/* Direct WhatsApp Order */}
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 px-6 rounded-lg font-bold text-sm bg-[#128C7E] text-white hover:bg-[#075E54] flex items-center justify-center gap-2 transition-colors shadow-xs"
+                >
+                  <MessageCircle className="w-4 h-4 fill-current" />
+                  <span>Order on WhatsApp (Direct Confirmation)</span>
+                </a>
+              </>
+            ) : (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 px-6 rounded-lg font-bold text-sm bg-[#128C7E] text-white hover:bg-[#075E54] flex items-center justify-center gap-2 transition-colors shadow-md active:scale-99"
+              >
+                <MessageCircle className="w-4 h-4 fill-current" />
+                <span>Get Price (WhatsApp Enquiry)</span>
+              </a>
+            )}
           </div>
 
           {/* Product Description */}

@@ -31,12 +31,13 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
 
+  const isPriceVisible = product.priceVisible !== false;
   const isOutOfStock = product.stockQuantity <= 0;
   const isLowStock = product.stockQuantity > 0 && product.stockQuantity <= 10;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (isOutOfStock) return;
+    if (isOutOfStock || !isPriceVisible) return;
     
     addItem({
       productId: product.id,
@@ -60,6 +61,7 @@ export function ProductCard({ product }: ProductCardProps) {
     name: product.name,
     productCode: product.productCode,
     pricePerPiece: product.pricePerPiece,
+    priceVisible: isPriceVisible,
     quantity: 1,
   });
 
@@ -137,17 +139,28 @@ export function ProductCard({ product }: ProductCardProps) {
             </p>
           )}
 
-          {/* Wholesale Fixed Piece Rate */}
+          {/* Wholesale Fixed Piece Rate or Get Price Notice */}
           <div className="mt-4 pt-3 border-t border-border/60 flex items-baseline justify-between">
-            <div>
-              <span className="text-[10px] text-muted block uppercase tracking-wider font-medium">
-                Wholesale Rate
-              </span>
-              <div className="text-lg sm:text-xl font-bold text-primary">
-                ₹{product.pricePerPiece.toLocaleString('en-IN')}{' '}
-                <span className="text-xs font-normal text-muted">/ piece</span>
+            {isPriceVisible ? (
+              <div>
+                <span className="text-[10px] text-muted block uppercase tracking-wider font-medium">
+                  Wholesale Rate
+                </span>
+                <div className="text-lg sm:text-xl font-bold text-primary">
+                  ₹{product.pricePerPiece.toLocaleString('en-IN')}{' '}
+                  <span className="text-xs font-normal text-muted">/ piece</span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div>
+                <span className="text-[10px] text-muted block uppercase tracking-wider font-medium">
+                  Wholesale Rate
+                </span>
+                <div className="text-sm sm:text-base font-bold text-primary">
+                  Price On Enquiry
+                </div>
+              </div>
+            )}
 
             <div className="text-right">
               <span className="text-[10px] text-muted block">Order Volume</span>
@@ -159,44 +172,59 @@ export function ProductCard({ product }: ProductCardProps) {
 
       {/* Card Actions */}
       <div className="p-4 sm:p-5 pt-0 grid grid-cols-2 gap-2 border-t border-border/40 mt-2">
-        {/* Add to Wholesale Cart */}
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          disabled={isOutOfStock}
-          className={`col-span-2 sm:col-span-1 w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-xs font-semibold transition-all ${
-            isOutOfStock
-              ? 'bg-surface-subtle text-muted cursor-not-allowed border border-border'
-              : added
-              ? 'bg-emerald-700 text-white shadow-xs'
-              : 'bg-primary text-white hover:bg-primary-hover shadow-xs active:scale-98'
-          }`}
-          title={isOutOfStock ? 'Currently out of stock' : 'Add to Wholesale Order Cart'}
-        >
-          {added ? (
-            <>
-              <Check className="w-3.5 h-3.5" />
-              <span>Added!</span>
-            </>
-          ) : (
-            <>
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
-            </>
-          )}
-        </button>
+        {!isPriceVisible ? (
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="col-span-2 w-full inline-flex items-center justify-center gap-2 py-2.5 px-3 rounded-md text-xs font-bold bg-[#128C7E] text-white hover:bg-[#075E54] shadow-xs active:scale-98 transition-all"
+            title="Get Wholesale Price on WhatsApp"
+          >
+            <MessageCircle className="w-4 h-4 fill-current" />
+            <span>Get Price</span>
+          </a>
+        ) : (
+          <>
+            {/* Add to Wholesale Cart */}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={isOutOfStock}
+              className={`col-span-2 sm:col-span-1 w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-xs font-semibold transition-all ${
+                isOutOfStock
+                  ? 'bg-surface-subtle text-muted cursor-not-allowed border border-border'
+                  : added
+                  ? 'bg-emerald-700 text-white shadow-xs'
+                  : 'bg-primary text-white hover:bg-primary-hover shadow-xs active:scale-98'
+              }`}
+              title={isOutOfStock ? 'Currently out of stock' : 'Add to Wholesale Order Cart'}
+            >
+              {added ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Added!</span>
+                </>
+              ) : (
+                <>
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  <span>{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                </>
+              )}
+            </button>
 
-        {/* WhatsApp Direct Enquiry */}
-        <a
-          href={whatsappHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="col-span-2 sm:col-span-1 w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-xs font-semibold bg-[#128C7E]/10 text-[#075E54] hover:bg-[#128C7E] hover:text-white transition-all border border-[#128C7E]/30"
-          title="Direct WhatsApp Enquiry with Product Details"
-        >
-          <MessageCircle className="w-3.5 h-3.5 fill-current" />
-          <span>WhatsApp</span>
-        </a>
+            {/* WhatsApp Direct Enquiry */}
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="col-span-2 sm:col-span-1 w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-xs font-semibold bg-[#128C7E]/10 text-[#075E54] hover:bg-[#128C7E] hover:text-white transition-all border border-[#128C7E]/30"
+              title="Direct WhatsApp Enquiry with Product Details"
+            >
+              <MessageCircle className="w-3.5 h-3.5 fill-current" />
+              <span>WhatsApp</span>
+            </a>
+          </>
+        )}
 
         {/* View Details Link */}
         <Link
