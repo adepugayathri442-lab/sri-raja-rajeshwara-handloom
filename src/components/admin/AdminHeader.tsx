@@ -3,6 +3,7 @@
 import React from 'react';
 import { ExternalLink, Database, LogOut } from 'lucide-react';
 import { Badge } from '@/components/common/Badge';
+import { ShivaParvathiEmblem } from '@/components/common/Logo';
 import { useAuth } from '@/lib/auth/auth-context';
 
 export function AdminHeader() {
@@ -12,6 +13,9 @@ export function AdminHeader() {
   return (
     <header className="hidden lg:flex h-16 bg-surface border-b border-border px-6 items-center justify-between shadow-2xs">
       <div className="flex items-center gap-3">
+        <div className="p-0.5 rounded-full bg-cream border border-accent/40 shadow-2xs shrink-0">
+          <ShivaParvathiEmblem size={28} />
+        </div>
         <span className="text-xs font-semibold text-primary uppercase tracking-wider">
           Merchant Administration
         </span>

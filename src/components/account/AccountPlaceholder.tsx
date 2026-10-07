@@ -34,6 +34,7 @@ import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { useAuth } from '@/lib/auth/auth-context';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { ShivaParvathiEmblem } from '@/components/common/Logo';
 import {
   getCustomerOrders,
   getCustomerAddresses,
@@ -101,11 +102,15 @@ export function AccountPlaceholder() {
           {/* Header Card */}
           <div className="bg-surface rounded-2xl border border-border p-5 sm:p-7 shadow-2xs mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="inline-flex items-center gap-2 mb-2">
-                  <Badge variant="primary" size="sm">
-                    Wholesale Account
-                  </Badge>
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="p-1 rounded-full bg-cream border border-accent/40 shadow-xs shrink-0">
+                  <ShivaParvathiEmblem size={44} />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-2 mb-2">
+                    <Badge variant="primary" size="sm">
+                      Wholesale Account
+                    </Badge>
                   {isAdmin ? (
                     <Badge variant="accent" size="sm">
                       Administrator
@@ -134,8 +139,9 @@ export function AccountPlaceholder() {
                   )}
                 </p>
               </div>
+            </div>
 
-              <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60">
+            <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/60">
                 <a
                   href={whatsappHref}
                   target="_blank"

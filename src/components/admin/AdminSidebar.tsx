@@ -22,7 +22,7 @@ import {
   ExternalLink,
   LogOut,
 } from 'lucide-react';
-import { Logo } from '@/components/common/Logo';
+import { Logo, ShivaParvathiEmblem } from '@/components/common/Logo';
 import { useAuth } from '@/lib/auth/auth-context';
 
 export const ADMIN_NAV_ITEMS = [
@@ -57,7 +57,9 @@ export function AdminSidebar() {
       {/* Mobile Top Navigation Bar (visible only on < lg) */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-primary text-white h-14 px-4 flex items-center justify-between border-b border-primary-light/40 shadow-xs">
         <Link href="/admin" className="flex items-center gap-2 hover:opacity-90">
-          <ShieldCheck className="w-4 h-4 text-accent" />
+          <div className="p-0.5 rounded-full bg-surface border border-accent/40 shrink-0">
+            <ShivaParvathiEmblem size={24} />
+          </div>
           <span className="font-serif font-bold text-sm tracking-wide">SRR Admin</span>
         </Link>
         <div className="flex items-center gap-2">
@@ -93,8 +95,10 @@ export function AdminSidebar() {
           >
             {/* Drawer Header */}
             <div className="flex items-center justify-between pb-4 border-b border-primary-light/30">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-accent" />
+              <div className="flex items-center gap-2.5">
+                <div className="p-0.5 rounded-full bg-surface border border-accent/40 shrink-0">
+                  <ShivaParvathiEmblem size={26} />
+                </div>
                 <span className="font-serif font-bold text-sm">Owner Operations</span>
               </div>
               <button

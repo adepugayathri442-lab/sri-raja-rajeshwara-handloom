@@ -43,6 +43,11 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  icons: {
+    icon: '/sri_raja_rajeshwara_shiva_parvathi_logo.png',
+    shortcut: '/sri_raja_rajeshwara_shiva_parvathi_logo.png',
+    apple: '/sri_raja_rajeshwara_shiva_parvathi_logo.png',
+  },
 };
 
 export const viewport: Viewport = {
