@@ -87,9 +87,11 @@ export async function CategoryGrid() {
                           </span>
                         </div>
 
-                        <h4 className="text-lg font-serif font-bold text-primary group-hover:text-accent transition-colors">
-                          {cat.name}
-                        </h4>
+                        <Link href={`/categories/${cat.slug}`} className="block">
+                          <h4 className="text-lg font-serif font-bold text-primary group-hover:text-accent transition-colors">
+                            {cat.name}
+                          </h4>
+                        </Link>
 
                         <p className="mt-2 text-xs sm:text-sm text-muted leading-relaxed line-clamp-3">
                           {cat.description ||

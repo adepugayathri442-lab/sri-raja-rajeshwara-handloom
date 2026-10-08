@@ -41,8 +41,11 @@ export default async function CategoryDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  // Query real products belonging to this category from Supabase
-  const { products, totalCount } = await getProducts({ categorySlug: slug });
+  // Query real products belonging to this category from Supabase using category UUID
+  const { products, totalCount } = await getProducts({
+    categoryId: category.id,
+    categorySlug: slug,
+  });
 
   return (
     <div className="py-10 sm:py-16 bg-cream/40 min-h-screen">

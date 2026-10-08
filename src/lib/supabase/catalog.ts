@@ -22,6 +22,7 @@ export interface ProductWithRelations extends ProductRow {
 }
 
 export interface GetProductsOptions {
+  categoryId?: string;
   categorySlug?: string;
   categoryGroup?: string;
   search?: string;
@@ -79,9 +80,9 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryRow | nul
       .eq('is_active', true);
 
     if (isUuid) {
-      query = query.or(`id.eq.${cleanSlug},slug.ilike.${cleanSlug}`);
+      query = query.eq('id', cleanSlug);
     } else {
-      query = query.or(`slug.ilike.${cleanSlug},name.ilike.${cleanSlug}`);
+      query = query.eq('slug', cleanSlug.toLowerCase());
     }
 
     const { data, error } = await query.limit(1).maybeSingle();
@@ -98,6 +99,7 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryRow | nul
       const { data: dbByName } = await supabase
         .from('categories')
         .select('*')
+        .eq('is_active', true)
         .ilike('name', staticMatch.name)
         .limit(1)
         .maybeSingle();
@@ -130,8 +132,10 @@ export async function getProducts(options: GetProductsOptions = {}): Promise<{
       .select('*, category:categories(*), product_images(*)', { count: 'exact' })
       .eq('is_active', true);
 
-    // Filter by Category Slug: strictly resolve to a valid UUID foreign key
-    if (options.categorySlug && options.categorySlug !== 'all') {
+    // Filter by Category: strictly use the category's real database UUID
+    if (options.categoryId) {
+      query = query.eq('category_id', options.categoryId);
+    } else if (options.categorySlug && options.categorySlug !== 'all') {
       const cleanCatSlug = decodeURIComponent(options.categorySlug).trim();
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanCatSlug);
 
@@ -139,30 +143,9 @@ export async function getProducts(options: GetProductsOptions = {}): Promise<{
       if (isUuid) {
         targetCategoryId = cleanCatSlug;
       } else {
-        const { data: dbCat } = await supabase
-          .from('categories')
-          .select('id')
-          .or(`slug.ilike.${cleanCatSlug},name.ilike.${cleanCatSlug}`)
-          .limit(1)
-          .maybeSingle();
-
-        if (dbCat?.id) {
-          targetCategoryId = dbCat.id;
-        } else {
-          const staticMatch = WHOLESALE_CATEGORIES.find(
-            (c) => c.slug.toLowerCase() === cleanCatSlug.toLowerCase() || c.name.toLowerCase() === cleanCatSlug.toLowerCase()
-          );
-          if (staticMatch) {
-            const { data: dbByName } = await supabase
-              .from('categories')
-              .select('id')
-              .ilike('name', staticMatch.name)
-              .limit(1)
-              .maybeSingle();
-            if (dbByName?.id) {
-              targetCategoryId = dbByName.id;
-            }
-          }
+        const category = await getCategoryBySlug(cleanCatSlug);
+        if (category && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(category.id)) {
+          targetCategoryId = category.id;
         }
       }
 
