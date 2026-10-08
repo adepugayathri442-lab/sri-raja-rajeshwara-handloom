@@ -59,6 +59,7 @@ export interface Product {
   images?: string[];
   isActive: boolean;
   priceVisible?: boolean;
+  createdAt?: string;
 }
 
 /**

@@ -301,6 +301,7 @@ function mapProductRow(row: ProductWithRelations): Product {
     images,
     isActive: Boolean(row.is_active),
     priceVisible: hasValidPrice && row.price_visible !== false,
+    createdAt: row.created_at || new Date().toISOString(),
   };
 }
 

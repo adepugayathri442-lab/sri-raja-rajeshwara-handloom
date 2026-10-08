@@ -1,13 +1,11 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { Hero } from '@/components/home/Hero';
-import { HomeBannerSlider } from '@/components/home/HomeBannerSlider';
-import { CategoryGrid } from '@/components/home/CategoryGrid';
-import { FeaturedProductsSection } from '@/components/home/FeaturedProductsSection';
-import { WhyChooseUs } from '@/components/home/WhyChooseUs';
-import { WholesaleCtaSection } from '@/components/home/WholesaleCtaSection';
-import { AboutSection } from '@/components/home/AboutSection';
-import { ContactCtaSection } from '@/components/home/ContactCtaSection';
+import { getCategories, getProducts } from '@/lib/supabase/catalog';
+import { getAllCatalogueItems } from '@/lib/supabase/image-catalogue';
+import { HomeProductCatalogue } from '@/components/home/HomeProductCatalogue';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: 'Sri Raja Rajeshwara Handloom | Wholesale Cloth Merchant',
@@ -15,32 +13,21 @@ export const metadata: Metadata = {
     'Authentic wholesale textiles supplied to retail shops, resellers, and bulk buyers across India. Fixed piece rates for Towels, Lungies, Traditional Cloth, Dhoties, and Shawls.',
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Concurrently fetch real database categories, image catalogue items, and normal products
+  const [categories, catalogueItems, { products }] = await Promise.all([
+    getCategories(),
+    getAllCatalogueItems(),
+    getProducts({ limit: 100, sortBy: 'newest' }),
+  ]);
+
   return (
-    <div className="flex flex-col">
-      {/* 1. Hero Section */}
-      <Hero />
-
-      {/* 2. Amazon-style Homepage Banner Carousel */}
-      <HomeBannerSlider />
-
-      {/* 3. Product Categories */}
-      <CategoryGrid />
-
-      {/* 3. Featured Products Placeholder */}
-      <FeaturedProductsSection />
-
-      {/* 4. Why Choose Us */}
-      <WhyChooseUs />
-
-      {/* 5. Wholesale Enquiry CTA */}
-      <WholesaleCtaSection />
-
-      {/* 6. About Business */}
-      <AboutSection />
-
-      {/* 7. Contact CTA */}
-      <ContactCtaSection />
+    <div className="min-h-screen bg-cream/30">
+      <HomeProductCatalogue
+        categories={categories}
+        catalogueItems={catalogueItems}
+        products={products}
+      />
     </div>
   );
 }
