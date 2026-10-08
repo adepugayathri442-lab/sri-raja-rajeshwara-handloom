@@ -34,6 +34,7 @@ import {
   BarChart3,
   Settings,
   MessageCircle,
+  Sparkles,
 } from 'lucide-react';
 import { Card } from '@/components/common/Card';
 import { Badge } from '@/components/common/Badge';
@@ -150,6 +151,15 @@ export function AdminDashboard() {
             leftIcon={<PlusCircle className="w-4 h-4" />}
           >
             Add Product
+          </Button>
+
+          <Button
+            href="/admin/image-catalogue"
+            variant="outline"
+            size="md"
+            leftIcon={<Sparkles className="w-4 h-4 text-accent" />}
+          >
+            Image Catalogue
           </Button>
 
           <Button

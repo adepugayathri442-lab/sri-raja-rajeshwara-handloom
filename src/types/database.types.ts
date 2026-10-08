@@ -171,6 +171,41 @@ export interface Database {
         };
         Relationships: [];
       };
+      catalogue_items: {
+        Row: {
+          id: string;
+          category_id: string;
+          image_url: string;
+          storage_path: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          category_id: string;
+          image_url: string;
+          storage_path: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          category_id?: string;
+          image_url?: string;
+          storage_path?: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "catalogue_items_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       products: {
         Row: {
           id: string;

@@ -8,7 +8,12 @@ import { Badge } from '@/components/common/Badge';
 import { EmptyProductState } from '@/components/products/EmptyProductState';
 import { ProductCard } from '@/components/products/ProductCard';
 import { CategoryNavigation } from '@/components/categories/CategoryNavigation';
+import { ImageCatalogueGrid } from '@/components/categories/ImageCatalogueGrid';
 import { getCategoryBySlug, getProducts } from '@/lib/supabase/catalog';
+import { getCatalogueItemsByCategoryId } from '@/lib/supabase/image-catalogue';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -26,15 +31,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `Wholesale ${category.name} | Fixed Piece Rates | Sri Raja Rajeshwara Handloom`,
+    title: `${category.name} | Fixed Piece Rates | Sri Raja Rajeshwara Handloom`,
     description:
       category.description ||
       `Authentic wholesale ${category.name} supplied to retail shops, resellers, and institutions across India at fixed piece rates.`,
   };
 }
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export default async function CategoryDetailPage({ params }: PageProps) {
   const { slug } = await params;
@@ -44,11 +46,16 @@ export default async function CategoryDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  // Query real products belonging to this category from Supabase using category UUID
-  const { products, totalCount } = await getProducts({
-    categoryId: category.id,
-    categorySlug: slug,
-  });
+  // Concurrently query normal products and image catalogue items belonging to this category UUID
+  const [{ products }, catalogueItems] = await Promise.all([
+    getProducts({
+      categoryId: category.id,
+      categorySlug: slug,
+    }),
+    getCatalogueItemsByCategoryId(category.id),
+  ]);
+
+  const totalItemsCount = products.length + catalogueItems.length;
 
   return (
     <div className="py-10 sm:py-16 bg-cream/40 min-h-screen">
@@ -76,7 +83,7 @@ export default async function CategoryDetailPage({ params }: PageProps) {
                 {category.group_name} Family
               </Badge>
               <span className="text-xs text-muted">
-                {totalCount} product{totalCount === 1 ? '' : 's'} available
+                {totalItemsCount} item{totalItemsCount === 1 ? '' : 's'} available
               </span>
             </div>
 
@@ -112,14 +119,55 @@ export default async function CategoryDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Product Grid or Professional Empty State */}
-        {products.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+        {/* SECTION 1: Image-Only Wholesale Catalogue Items (if present) */}
+        {catalogueItems.length > 0 && (
+          <div className="mb-14 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b-2 border-primary/10 gap-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rotate-45 bg-accent" />
+                <h2 className="text-lg sm:text-xl font-serif font-bold text-primary">
+                  Image Catalogue
+                </h2>
+                <Badge variant="subtle" size="sm">
+                  {catalogueItems.length} {catalogueItems.length === 1 ? 'item' : 'items'}
+                </Badge>
+              </div>
+              <span className="text-xs text-muted">
+                Each photo is a separate wholesale item • Fixed rate on enquiry
+              </span>
+            </div>
+
+            <ImageCatalogueGrid items={catalogueItems} categoryName={category.name} />
           </div>
-        ) : (
+        )}
+
+        {/* SECTION 2: Normal Products with Specifications (if present) */}
+        {products.length > 0 && (
+          <div className="space-y-4">
+            {catalogueItems.length > 0 && (
+              <div className="flex items-center justify-between pb-3 border-b-2 border-primary/10">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rotate-45 bg-primary" />
+                  <h2 className="text-lg sm:text-xl font-serif font-bold text-primary">
+                    Products with Detailed Specifications
+                  </h2>
+                  <Badge variant="subtle" size="sm">
+                    {products.length} {products.length === 1 ? 'product' : 'products'}
+                  </Badge>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty State when BOTH Image Items AND Normal Products are 0 */}
+        {totalItemsCount === 0 && (
           <EmptyProductState categoryName={category.name} categorySlug={category.slug} />
         )}
       </Container>

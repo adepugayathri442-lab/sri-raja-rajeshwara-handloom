@@ -19,8 +19,25 @@ export type OrderItemRow = Database['public']['Tables']['order_items']['Row'];
 export type WholesaleEnquiryRow = Database['public']['Tables']['wholesale_enquiries']['Row'];
 export type WishlistRow = Database['public']['Tables']['wishlist']['Row'];
 export type DeliveryChargeRuleRow = Database['public']['Tables']['delivery_charge_rules']['Row'];
+export type CatalogueItemRow = Database['public']['Tables']['catalogue_items']['Row'];
+export type CatalogueItemInsert = Database['public']['Tables']['catalogue_items']['Insert'];
+export type CatalogueItemUpdate = Database['public']['Tables']['catalogue_items']['Update'];
 
 export type StockStatus = 'full' | 'limited' | 'out_of_stock';
+
+/**
+ * Frontend Image-Only Wholesale Catalogue Item
+ */
+export interface CatalogueItem {
+  id: string;
+  categoryId: string;
+  categoryName?: string;
+  categorySlug?: string;
+  imageUrl: string;
+  storagePath: string;
+  sortOrder: number;
+  createdAt: string;
+}
 
 /**
  * Frontend Wholesale Product View Model

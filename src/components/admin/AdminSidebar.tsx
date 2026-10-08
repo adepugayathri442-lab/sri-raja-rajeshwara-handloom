@@ -21,6 +21,7 @@ import {
   X,
   ExternalLink,
   LogOut,
+  Images,
 } from 'lucide-react';
 import { Logo, ShivaParvathiEmblem } from '@/components/common/Logo';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -28,6 +29,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 export const ADMIN_NAV_ITEMS = [
   { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { title: "Products", href: "/admin/products", icon: Package },
+  { title: "Image Catalogue", href: "/admin/image-catalogue", icon: Images },
   { title: "Categories", href: "/admin/categories", icon: FolderTree },
   { title: "Orders", href: "/admin/orders", icon: ShoppingBag },
   { title: "Customers", href: "/admin/customers", icon: Users },

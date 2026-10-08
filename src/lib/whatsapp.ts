@@ -207,3 +207,46 @@ export function getWholesaleFormWhatsAppUrl(params: WholesaleEnquiryParams): str
 
   return buildWhatsAppUrl(lines);
 }
+
+/**
+ * 5. Simple Image-Only Catalogue Item Enquiry / Buy Message
+ */
+export interface CatalogueItemEnquiryParams {
+  categoryName: string;
+  itemId: string;
+  imageUrl?: string;
+  intent?: 'buy' | 'enquire';
+  customerName?: string;
+  businessName?: string;
+}
+
+export function getCatalogueItemEnquiryUrl(params: CatalogueItemEnquiryParams): string {
+  const isBuy = params.intent === 'buy';
+  const prefix = isBuy
+    ? `Namaste! I would like to BUY this wholesale item from ${params.categoryName}.`
+    : `Hello, I am interested in this wholesale item from ${params.categoryName}. Please share the wholesale price and availability.`;
+
+  const lines = [
+    `*SRI RAJA RAJESHWARA HANDLOOM — Wholesale Catalogue*`,
+    prefix,
+    ``,
+    `Category: ${params.categoryName}`,
+    `Catalogue Item Ref: ${params.itemId}`,
+  ];
+
+  if (params.customerName || params.businessName) {
+    lines.push(``);
+    lines.push(`Merchant / Buyer Details:`);
+    if (params.customerName) lines.push(`Name: ${params.customerName}`);
+    if (params.businessName) lines.push(`Business / Shop: ${params.businessName}`);
+  }
+
+  lines.push(``);
+  lines.push(
+    isBuy
+      ? `Please share wholesale piece rate, minimum order volume, and payment / transport parcel procedure.`
+      : `Please share wholesale piece rate and dispatch availability.`
+  );
+
+  return buildWhatsAppUrl(lines.join('\n'));
+}
