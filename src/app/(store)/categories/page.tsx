@@ -5,6 +5,9 @@ import { SectionHeading } from '@/components/common/SectionHeading';
 import { CategoryList } from '@/components/categories/CategoryList';
 import { CategoryNavigation } from '@/components/categories/CategoryNavigation';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: 'Wholesale Categories | Sri Raja Rajeshwara Handloom',
   description:

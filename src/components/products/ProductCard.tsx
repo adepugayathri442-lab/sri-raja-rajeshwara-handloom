@@ -246,10 +246,10 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* View Details Link */}
         <Link
           href={`/products/${product.slug}`}
-          className="col-span-2 text-center text-[11px] font-semibold text-primary hover:text-accent pt-1 inline-flex items-center justify-center gap-1 transition-colors"
+          className="col-span-2 text-center text-xs font-semibold text-primary hover:text-accent pt-1 inline-flex items-center justify-center gap-1.5 transition-colors"
         >
-          <span>View Complete Product Details</span>
-          <ArrowRight className="w-3 h-3" />
+          <span>View Product</span>
+          <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
     </div>

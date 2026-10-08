@@ -33,6 +33,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function CategoryDetailPage({ params }: PageProps) {
   const { slug } = await params;
   const category = await getCategoryBySlug(slug);
@@ -84,7 +87,7 @@ export default async function CategoryDetailPage({ params }: PageProps) {
           </div>
 
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif font-bold text-primary">
-            Wholesale {category.name}
+            {category.name}
           </h1>
 
           <p className="text-sm sm:text-base text-muted max-w-3xl leading-relaxed">

@@ -117,10 +117,10 @@ export function Footer() {
           {/* Wholesale Categories */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-accent">
-              Textile Categories
+              Textile Categories (12)
             </h3>
             <ul className="space-y-1.5 text-xs text-white/75">
-              {WHOLESALE_CATEGORIES.slice(0, 8).map((cat) => (
+              {WHOLESALE_CATEGORIES.map((cat) => (
                 <li key={cat.id}>
                   <Link
                     href={`/categories/${cat.slug}`}
@@ -135,7 +135,7 @@ export function Footer() {
                   href="/categories"
                   className="hover:text-accent transition-colors block py-1 text-accent text-xs font-semibold"
                 >
-                  View All 12 Categories →
+                  View All Categories →
                 </Link>
               </li>
             </ul>

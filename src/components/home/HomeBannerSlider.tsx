@@ -92,7 +92,7 @@ const BANNER_SLIDES: BannerSlide[] = [
     subtitle: 'Authentic ceremonial textiles, Condva, Deeksha cloth, and shawls with parcel consignment tracking across India.',
     badges: ['Maharashtra Dastie', 'Khadhi Long Cloth', 'Sanmaan Shawls'],
     ctaText: 'Browse Traditional Cloth',
-    ctaHref: '/categories/traditional-cloth',
+    ctaHref: '/categories/deeksha-cloth',
     secondaryCtaText: 'Submit Wholesale Enquiry',
     secondaryCtaHref: '/wholesale-enquiry',
     isWhatsAppSecondary: false,

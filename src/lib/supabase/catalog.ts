@@ -133,28 +133,33 @@ export async function getProducts(options: GetProductsOptions = {}): Promise<{
       .eq('is_active', true);
 
     // Filter by Category: strictly use the category's real database UUID
-    if (options.categoryId) {
-      query = query.eq('category_id', options.categoryId);
-    } else if (options.categorySlug && options.categorySlug !== 'all') {
-      const cleanCatSlug = decodeURIComponent(options.categorySlug).trim();
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanCatSlug);
+    const isUuid = (val?: string): boolean =>
+      Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 
-      let targetCategoryId: string | null = null;
-      if (isUuid) {
-        targetCategoryId = cleanCatSlug;
-      } else {
-        const category = await getCategoryBySlug(cleanCatSlug);
-        if (category && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(category.id)) {
-          targetCategoryId = category.id;
+    let targetCategoryId: string | null = null;
+
+    if (options.categoryId && isUuid(options.categoryId)) {
+      targetCategoryId = options.categoryId;
+    } else {
+      const slugOrIdToResolve = options.categorySlug || options.categoryId;
+      if (slugOrIdToResolve && slugOrIdToResolve !== 'all') {
+        const cleanCatSlug = decodeURIComponent(slugOrIdToResolve).trim();
+        if (isUuid(cleanCatSlug)) {
+          targetCategoryId = cleanCatSlug;
+        } else {
+          const cat = await getCategoryBySlug(cleanCatSlug);
+          if (cat && isUuid(cat.id)) {
+            targetCategoryId = cat.id;
+          }
         }
       }
+    }
 
-      if (targetCategoryId) {
-        query = query.eq('category_id', targetCategoryId);
-      } else {
-        // Category does not exist in database, return 0 products safely without crashing Postgres
-        return { products: [], totalCount: 0 };
-      }
+    if (targetCategoryId) {
+      query = query.eq('category_id', targetCategoryId);
+    } else if (options.categoryId || (options.categorySlug && options.categorySlug !== 'all')) {
+      // Category was specified but could not be resolved to a valid UUID in DB
+      return { products: [], totalCount: 0 };
     }
 
     // Filter by Stock Availability
